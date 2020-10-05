@@ -1,4 +1,5 @@
 import datetime
+from enum import Enum, unique
 
 
 class Log:
@@ -11,7 +12,7 @@ class Log:
         Log.instances.append(self)
 
     def write(self):
-        with open(self.name, "w") as log:
+        with open(self.name, "a") as log:
             for line in self.log:
                 log.write(line + "\n")
 
@@ -35,6 +36,7 @@ class GlobalNameSpace:
 
 class Config:
     u"""Config file."""
+
     def __init__(self):
         self.system_type = {0: "linux", 1: "windows", 2: "macOS"}
         self.system = self.system_type[0]
@@ -43,13 +45,35 @@ class Config:
 
 
 class NWN:
-    u"""Class recognizing type of game."""
+    u"""Class recognizing type of the game."""
     def __init__(self, path_to_dir, version):
         self.path = path_to_dir
         self.version = version
         if self.version not in GlobalNameSpace.known_versions:
-            print("Unsupported version.")
-            return
+            from exceptions import UnknownVersionException
+            raise UnknownVersionException(self.version)
+
+
+class File:
+    u"""General representation of Neverwinter Nights file."""
+
+    @unique
+    class FileType(Enum):
+        module = 0
+        hakpack = 1
+        music = 2
+        movie = 3
+
+    _type = [FileType.module, FileType.hakpack, FileType.music, FileType.movie]
+
+    _extensions = {FileType.module: "mod",
+                   FileType.hakpack: "hak",
+                   FileType.music: "bmu",
+                   FileType.movie: "bik"
+                   }
+
+    def __init__(self, file):
+        self.file = file
 
 
 if __name__ == '__main__':
