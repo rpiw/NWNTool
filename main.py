@@ -1,10 +1,14 @@
 import datetime
 from enum import Enum, unique
+import pathlib
+
+from exceptions import UnknownVersionException
 
 
 class Log:
     u"""Maintain writing a log."""
     instances = []
+    _limit = 1000  # Amount of characters to cache
 
     def __init__(self):
         self.name = "log" + datetime.datetime.now().strftime("%Y_%m_%d_%H%M")
@@ -15,6 +19,7 @@ class Log:
         with open(self.name, "a") as log:
             for line in self.log:
                 log.write(line + "\n")
+        self.log.clear()
 
     def cache(self, data):
         if data is not str:
@@ -23,6 +28,8 @@ class Log:
             except TypeError:
                 data = "Could not convert data to string."
         self.log.append(data)
+        if len(self.log) >= Log._limit:
+            self.write()
 
     @staticmethod
     def show_instances():
@@ -31,7 +38,7 @@ class Log:
 
 class GlobalNameSpace:
     u"""Class for keeping everything not fitting to other classes."""
-    known_versions = ["enhanced_edition", "diamond_edition"]
+    known_versions = {0: "enhanced_edition", 1: "diamond_edition"}
 
 
 class Config:
@@ -47,11 +54,34 @@ class Config:
 class NWN:
     u"""Class recognizing type of the game."""
     def __init__(self, path_to_dir, version):
-        self.path = path_to_dir
-        self.version = version
-        if self.version not in GlobalNameSpace.known_versions:
-            from exceptions import UnknownVersionException
-            raise UnknownVersionException(self.version)
+        self.path = NWN.check_path(path_to_dir)
+        try:
+            self.version = NWN.check_version(version)
+        except UnknownVersionException:
+            self.version = ""
+        self.directories = []
+
+    @staticmethod
+    def check_path(path):
+        p = pathlib.Path(path)
+        try:
+            exists = p.exists()
+            is_directory = p.is_dir()
+        except OSError:
+            log.cache("Invalid path.")
+            return ""
+        finally:
+            if exists and is_directory:
+                return path
+            log.cache("Directory does not exist or path is invalid.")
+            return ""
+
+    @staticmethod
+    def check_version(version):
+        if version not in GlobalNameSpace.known_versions.values():
+            raise UnknownVersionException(version)
+        else:
+            return version
 
 
 class File:
@@ -77,4 +107,6 @@ class File:
 
 
 if __name__ == '__main__':
-    pass
+    log = Log()
+
+
