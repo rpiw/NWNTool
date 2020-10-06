@@ -2,9 +2,9 @@ import datetime
 from enum import Enum, unique
 import pathlib
 import os
-
 from exceptions import UnknownVersionException
 from exceptions import DirectoryDoesNotExistsException
+
 
 class Log:
     u"""Maintain writing a log."""
@@ -110,14 +110,89 @@ class Config:
 class NWN:
     u"""Class recognizing type of the game."""
     def __init__(self, path_to_dir, version):
-        self.path = GlobalNameSpace.check_path(path_to_dir)
+        self.path = pathlib.Path(GlobalNameSpace.check_path(path_to_dir))
         try:
             self.version = NWN.check_version(version)
         except UnknownVersionException:
             self.version = ""
         self.directory = Directory(self.path)
-        self.directories = list(d for d in self.directory.listdir if os.DirEntry.is_dir(d))
-        self.files = list(d for d in self.directory.listdir if os.DirEntry.is_file(d))
+        self.directories = list(d for d in self.directory.listdir if pathlib.Path(d).is_dir())
+        self.files = list(d for d in self.directory.listdir if pathlib.Path(d).is_file())
+
+    class Module:
+        u"""Represent a module of Neverwinter Nights game. NWN module's file ends with .mod extension."""
+        def __init__(self, name="Unknown Module Name"):
+            self.name: str = name
+            self.title: str = "Title"
+            self.is_part_of_series: bool = False
+            self.compatibility = {"Diamond_edition": True, "Enhanced_edition": False}
+            self.series: str = "Series" if self.is_part_of_series else None
+            self.requirements = {"OC": True, "Xp1": True, "Xp2": True}
+            self.dependencies = {File.FileType.hakpack: [],
+                                 File.FileType.movie: [],
+                                 File.FileType.music: []}
+            self.cep: bool = False  # Community expansion pack required
+            self.cep_version: float = 2.65 if self.cep else 0
+            self.author: Person = Person("Unknown", "Author")
+            self.tags = []
+            self.language = "English"
+            self.extension = "mod"
+
+        def __repr__(self):
+            return "Module(Name: {0}, Title: {1})".format(self.name, self.title)
+
+        def __str__(self):
+            return "Module title: {0}".format(self.title)
+
+    class ModuleInDir(Module):
+        u"""Represent a module inside game directory."""
+        def __init__(self, path=pathlib.Path()):
+            self.path = path
+            super(NWN.ModuleInDir, self).__init__()
+
+    class ModuleInVault(Module):
+        u"""Represent a module on a website."""
+        def __init__(self, adress):
+            self.www = adress
+            super(NWN.ModuleInVault, self).__init__()
+
+    class OwnedModules:
+        u"""Represent a list of owned modules inside game directory."""
+        def __init__(self):
+            self._modules = []
+
+        def add_module(self, module) -> None:
+            self._modules.append(module)
+
+        def remove_module(self, module) -> bool:
+            if module in self._modules:
+                self._modules.remove(module)
+                return True
+            return False
+
+        def print(self):
+            for m in self._modules:
+                string = "Name: {0}, title: {1}".format(m.name, m.title)
+                print(string)
+
+        def print_paths(self):
+            for m in self._modules:
+                string = "Name: {0}, path: {1}".format(m.name, m.path)
+                print(string)
+
+    def find_modules(self):
+        results = []
+        for d in self.directories:
+            if d.name == "modules":  # Standard for all NWN versions!
+                iterator = os.scandir(self.path.joinpath(pathlib.Path("modules")))
+        for m in iterator:
+            if str(m.name).endswith(".mod"):
+                module = NWN.ModuleInDir(m)
+                module.name = "".join(n[0] for n in m.name.split())
+                module.title = m.name.replace(".mod", "")
+                module.path = m.path
+                results.append(module)
+        return results
 
     @staticmethod
     def check_version(version):
@@ -125,6 +200,16 @@ class NWN:
             raise UnknownVersionException(version)
         else:
             return version
+
+
+class Person:
+
+    def __init__(self, name, surname=""):
+        self.name = name
+        self.surname = surname
+
+    def __repr__(self):
+        print(self.name + " " + self.surname)
 
 
 class Directory:
@@ -140,7 +225,7 @@ class Directory:
 
             with os.scandir(self.path) as it:
                 for entry in it:
-                    self.listdir.append(entry)
+                    self.listdir.append(self.path.joinpath(pathlib.Path(entry.name)))
 
 
 class File:
@@ -165,6 +250,8 @@ class File:
         self.file = file
         self.directory = directory
 
+    def show_extensions(self):
+        return self._extensions
 
 if __name__ == '__main__':
     log = Log()
@@ -173,3 +260,4 @@ if __name__ == '__main__':
     cfg.read_config_file()
     c = cfg.get_config()
     nwn = NWN(c["diamond_version_local_dir"], GlobalNameSpace.known_versions[1])
+    modules = nwn.find_modules()
