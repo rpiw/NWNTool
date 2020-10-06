@@ -1,3 +1,7 @@
 {
-  "system" :  "linux" ,"diamond_version" :  "", "enhanced_version" : ""
+  "system" :  "linux" ,
+  "diamond_version" :  "/home/rodia/.wine/drive_c/GOG Games/NWN Diamond",
+  "diamond_version_local_dir": "/home/rodia/.wine/drive_c/GOG Games/NWN Diamond",
+  "enhanced_version" : "/home/rodia/.steam/steam/steamapps/common/Neverwinter Nights",
+  "enhanced_version_local_dir": "/home/rodia/.local/share/Neverwinter Nights"
 }
