@@ -4,6 +4,7 @@ import pathlib
 import os
 from exceptions import UnknownVersionException
 from exceptions import DirectoryDoesNotExistsException
+import pickle
 
 
 class Log:
@@ -49,6 +50,8 @@ class Log:
 class GlobalNameSpace:
     u"""Class for keeping everything not fitting to other classes."""
     known_versions = {0: "enhanced_edition", 1: "diamond_edition"}
+    file_with_saved_modules = "modules_bin"
+    install_directory = "."
 
     @staticmethod
     def check_path(path):
@@ -118,6 +121,7 @@ class NWN:
         self.directory = Directory(self.path)
         self.directories = list(d for d in self.directory.listdir if pathlib.Path(d).is_dir())
         self.files = list(d for d in self.directory.listdir if pathlib.Path(d).is_file())
+        self._modules = []
 
     class Module:
         u"""Represent a module of Neverwinter Nights game. NWN module's file ends with .mod extension."""
@@ -194,6 +198,15 @@ class NWN:
                 results.append(module)
         return results
 
+    def save_modules(self):
+        self._modules = self.find_modules()
+
+    def save_modules_list_to_file(self, filename):
+        pickle.dumps(self._modules, filename)
+
+    def load_modules_list(self, filename):
+        self._modules = pickle.load(filename)
+
     @staticmethod
     def check_version(version):
         if version not in GlobalNameSpace.known_versions.values():
@@ -246,12 +259,15 @@ class File:
                    FileType.movie: "bik"
                    }
 
-    def __init__(self, file, directory: Directory):
-        self.file = file
-        self.directory = directory
+    def __init__(self, path: pathlib.Path):
+        self.file = path
+        self.size = os.path.size(self.file)
+        self._ext = path.suffix()
+        self._type = list(File._extensions.keys())[list(File._extensions.values().index(self._ext))]
 
     def show_extensions(self):
         return self._extensions
+
 
 if __name__ == '__main__':
     log = Log()
