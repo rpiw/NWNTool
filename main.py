@@ -9,14 +9,27 @@ import pickle
 
 class Log:
     u"""Maintain writing a log."""
-    instances = []
+    instance = None
     _limit = 1000  # Amount of characters to cache
     _force = False
 
-    def __init__(self):
-        self.name = "log" + datetime.datetime.now().strftime("%Y_%m_%d_%H%M")
-        self.log = []
-        Log.instances.append(self)
+    class __Log:
+        def __init__(self, name):
+            self.name = name + datetime.datetime.now().strftime("%Y_%m_%d_%H%M")
+            self.log = []
+
+    def __init__(self, name):
+        if not Log.instance:
+            Log.instance = Log.__Log(name)
+        else:
+            Log.instance.name = name + datetime.datetime.now().strftime("%Y_%m_%d_%H%M")
+
+    def __getattr__(self, item):
+        return getattr(self.instance, item)
+
+    @staticmethod
+    def return_instance():
+        return Log.instance
 
     def write(self):
         with open(self.name, "a") as log:
@@ -41,10 +54,6 @@ class Log:
 
     def force_write(self):
         self._force = True
-
-    @staticmethod
-    def show_instances():
-        return Log.instances
 
 
 class GlobalNameSpace:
