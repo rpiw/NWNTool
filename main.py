@@ -121,7 +121,8 @@ class NWN:
         self.directory = Directory(self.path)
         self.directories = list(d for d in self.directory.listdir if pathlib.Path(d).is_dir())
         self.files = list(d for d in self.directory.listdir if pathlib.Path(d).is_file())
-        self._modules = []
+        self._modules: list[NWN.OwnedModules] = []
+        self._saved_modules_bin: pathlib.Path
 
     class Module:
         u"""Represent a module of Neverwinter Nights game. NWN module's file ends with .mod extension."""
@@ -141,12 +142,19 @@ class NWN:
             self.tags = []
             self.language = "English"
             self.extension = "mod"
+            self.version: float = 1.00
 
         def __repr__(self):
             return "Module(Name: {0}, Title: {1})".format(self.name, self.title)
 
         def __str__(self):
             return "Module title: {0}".format(self.title)
+
+        def __eq__(self, other):
+            return self.title == other.title and self.version == other.version
+
+        def __ne__(self, other):
+            return not self == other
 
     class ModuleInDir(Module):
         u"""Represent a module inside game directory."""
@@ -162,8 +170,8 @@ class NWN:
 
     class OwnedModules:
         u"""Represent a list of owned modules inside game directory."""
-        def __init__(self):
-            self._modules = []
+        def __init__(self, list_of_modules=[]):
+            self._modules = list_of_modules
 
         def add_module(self, module) -> None:
             self._modules.append(module)
@@ -199,7 +207,7 @@ class NWN:
         return results
 
     def save_modules(self):
-        self._modules = self.find_modules()
+        self._modules = NWN.OwnedModules(self.find_modules())
 
     def save_modules_list_to_file(self, filename):
         pickle.dumps(self._modules, filename)
