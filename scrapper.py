@@ -27,7 +27,6 @@ class REPatterns:
                         5: "field-name-field-requirements",
                         6: "field-name-field-language",
                         7: "field-name-field-tags",
-                        8: "field-name-field-files",
                         9: "field-name-field-related-projects",
                         10: "field-name-field-permissions-licensing",
                         11: "field-name-field-required-projects"
@@ -49,7 +48,7 @@ def create_list_of_links() -> list:
     return result
 
 
-def scrap_nwn_module(website: Website) -> dict:
+def scrap_nvn_vault(website: Website) -> dict:
     u"""Scrapper for page with module data on neverwintervault.org.
         Return a dictionary."""
     result = {"href": "",
@@ -64,7 +63,6 @@ def scrap_nwn_module(website: Website) -> dict:
               "tags": [],
               "required projects": [],
               "related projects": [],
-              "license": "",
               "requirements": []
               }
     response = requests.get(website.www())
