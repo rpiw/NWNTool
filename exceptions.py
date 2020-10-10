@@ -15,3 +15,10 @@ class DirectoryDoesNotExistsException(Exception):
     def __init__(self, path):
         self.message = "Directory does not exists: {0}".format(path)
         super().__init__(self.message)
+
+
+class InvalidUrl(Exception):
+
+    def __init__(self):
+        self.message = "Address of website is not valid!"
+        super(InvalidUrl, self).__init__(self.message)

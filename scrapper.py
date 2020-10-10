@@ -1,15 +1,23 @@
 from bs4 import BeautifulSoup
 import requests
 import re
+import validators
+from exceptions import InvalidUrl
 
 
 class Website:
 
     def __init__(self, address):
-        self.website = address
+        if validators.url(address):
+            self.website = address
+        else:
+            raise InvalidUrl
 
     def www(self):
         return self.website
+
+    def __add__(self, other):
+        return Website(self.www() + other.www())
 
 
 class REPatterns:
