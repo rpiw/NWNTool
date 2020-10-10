@@ -32,11 +32,10 @@ class Log:
         return Log.instance
 
     def write(self):
-        with open(self.name, "a") as log:
+        with open(self.name, "a") as _log:
             for line in self.log:
-                l = line + "\n"
-                print(l)
-                log.write(l)
+                line = line + "\n"
+                _log.write(line)
         self.log.clear()
 
     def cache(self, data):
@@ -65,6 +64,7 @@ class GlobalNameSpace:
     @staticmethod
     def check_path(path):
         p = pathlib.Path(path)
+        exists, is_directory = False, False
         try:
             exists = p.exists()
             is_directory = p.is_dir()
@@ -130,85 +130,18 @@ class NWN:
         self.directory = Directory(self.path)
         self.directories = list(d for d in self.directory.listdir if pathlib.Path(d).is_dir())
         self.files = list(d for d in self.directory.listdir if pathlib.Path(d).is_file())
-        self._modules: list[NWN.OwnedModules] = []
+        self._modules: list = []
         self._saved_modules_bin: pathlib.Path
-
-    class Module:
-        u"""Represent a module of Neverwinter Nights game. NWN module's file ends with .mod extension."""
-        def __init__(self, name="Unknown Module Name"):
-            self.name: str = name
-            self.title: str = "Title"
-            self.is_part_of_series: bool = False
-            self.compatibility = {"Diamond_edition": True, "Enhanced_edition": False}
-            self.series: str = "Series" if self.is_part_of_series else None
-            self.requirements = {"OC": True, "Xp1": True, "Xp2": True}
-            self.dependencies = {File.FileType.hakpack: [],
-                                 File.FileType.movie: [],
-                                 File.FileType.music: []}
-            self.cep: bool = False  # Community expansion pack required
-            self.cep_version: float = 2.65 if self.cep else 0
-            self.author: Person = Person("Unknown", "Author")
-            self.tags = []
-            self.language = "English"
-            self.extension = "mod"
-            self.version: float = 1.00
-
-        def __repr__(self):
-            return "Module(Name: {0}, Title: {1})".format(self.name, self.title)
-
-        def __str__(self):
-            return "Module title: {0}".format(self.title)
-
-        def __eq__(self, other):
-            return self.title == other.title and self.version == other.version
-
-        def __ne__(self, other):
-            return not self == other
-
-    class ModuleInDir(Module):
-        u"""Represent a module inside game directory."""
-        def __init__(self, path=pathlib.Path()):
-            self.path = path
-            super(NWN.ModuleInDir, self).__init__()
-
-    class ModuleInVault(Module):
-        u"""Represent a module on a website."""
-        def __init__(self, adress):
-            self.www = adress
-            super(NWN.ModuleInVault, self).__init__()
-
-    class OwnedModules:
-        u"""Represent a list of owned modules inside game directory."""
-        def __init__(self, list_of_modules=[]):
-            self._modules = list_of_modules
-
-        def add_module(self, module) -> None:
-            self._modules.append(module)
-
-        def remove_module(self, module) -> bool:
-            if module in self._modules:
-                self._modules.remove(module)
-                return True
-            return False
-
-        def print(self):
-            for m in self._modules:
-                string = "Name: {0}, title: {1}".format(m.name, m.title)
-                print(string)
-
-        def print_paths(self):
-            for m in self._modules:
-                string = "Name: {0}, path: {1}".format(m.name, m.path)
-                print(string)
 
     def find_modules(self):
         results = []
+        iterator = []
         for d in self.directories:
             if d.name == "modules":  # Standard for all NWN versions!
                 iterator = os.scandir(self.path.joinpath(pathlib.Path("modules")))
         for m in iterator:
             if str(m.name).endswith(".mod"):
-                module = NWN.ModuleInDir(m)
+                module = ModuleInDir(m)
                 module.name = "".join(n[0] for n in m.name.split())
                 module.title = m.name.replace(".mod", "")
                 module.path = m.path
@@ -216,7 +149,7 @@ class NWN:
         return results
 
     def save_modules(self):
-        self._modules = NWN.OwnedModules(self.find_modules())
+        self._modules = OwnedModules(self.find_modules())
 
     def save_modules_list_to_file(self, filename):
         pickle.dumps(self._modules, filename)
@@ -230,6 +163,79 @@ class NWN:
             raise UnknownVersionException(version)
         else:
             return version
+
+
+class Module:
+    u"""Represent a module of Neverwinter Nights game. NWN module's file ends with .mod extension."""
+    def __init__(self, name="Unknown Module Name"):
+        self.name: str = name
+        self.title: str = "Title"
+        self.is_part_of_series: bool = False
+        self.compatibility = {"Diamond_edition": True, "Enhanced_edition": False}
+        self.series: str = "Series" if self.is_part_of_series else None
+        self.requirements = {"OC": True, "Xp1": True, "Xp2": True}
+        self.dependencies = {File.FileType.hakpack: [],
+                             File.FileType.movie: [],
+                             File.FileType.music: []}
+        self.cep: bool = False  # Community expansion pack required
+        self.cep_version: float = 2.65 if self.cep else 0
+        self.author: Person = Person("Unknown", "Author")
+        self.tags = []
+        self.language = "English"
+        self.extension = "mod"
+        self.version: float = 1.00
+
+    def __repr__(self):
+        return "Module(Name: {0}, Title: {1})".format(self.name, self.title)
+
+    def __str__(self):
+        return "Module title: {0}".format(self.title)
+
+    def __eq__(self, other):
+        return self.title == other.title and self.version == other.version
+
+    def __ne__(self, other):
+        return not self == other
+
+
+class ModuleInDir(Module):
+    u"""Represent a module inside game directory."""
+    def __init__(self, path=pathlib.Path()):
+        self.path = path
+        super(ModuleInDir, self).__init__()
+
+
+class ModuleInVault(Module):
+    u"""Represent a module on a website."""
+    def __init__(self, address):
+        self.www = address
+        self.file_address = ""
+        super(ModuleInVault, self).__init__()
+
+
+class OwnedModules:
+    u"""Represent a list of owned modules inside game directory."""
+    def __init__(self, list_of_modules=()):
+        self._modules = list_of_modules
+
+    def add_module(self, module) -> None:
+        self._modules.append(module)
+
+    def remove_module(self, module) -> bool:
+        if module in self._modules:
+            self._modules.remove(module)
+            return True
+        return False
+
+    def print(self):
+        for m in self._modules:
+            string = "Name: {0}, title: {1}".format(m.name, m.title)
+            print(string)
+
+    def print_paths(self):
+        for m in self._modules:
+            string = "Name: {0}, path: {1}".format(m.name, m.path)
+            print(string)
 
 
 class Person:
@@ -278,16 +284,15 @@ class File:
 
     def __init__(self, path: pathlib.Path):
         self.file = path
-        self.size = os.path.size(self.file)
-        self._ext = path.suffix()
-        self._type = list(File._extensions.keys())[list(File._extensions.values().index(self._ext))]
+        self.size = os.path.getsize(self.file)
+        self._ext = path.suffix
 
     def show_extensions(self):
         return self._extensions
 
 
 if __name__ == '__main__':
-    log = Log()
+    log = Log(name="log")
     log.force_write()
     cfg = Config()
     cfg.read_config_file()
