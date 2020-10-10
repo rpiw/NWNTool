@@ -18,20 +18,20 @@ class REPatterns:
     module_src = re.compile("modules")
 
     class Module:
-        strings_list = [
-                        "field-name-submitted-by",
-                        "field-name-changed-date",
-                        "field-name-field-project-version",
-                        "field-name-field-game",
-                        "field-name-field-category",
-                        "field-name-field-requirements",
-                        "field-name-field-language",
-                        "field-name-field-tags",
-                        "field-name-field-files",
-                        "field-name-field-related-projects",
-                        "field-name-field-permissions-licensing"
-                        ]
-        module = tuple(re.compile(x) for x in strings_list)
+        strings_dict = {
+                        0: "field-name-submitted-by",
+                        1: "field-name-changed-date",
+                        2: "field-name-field-project-version",
+                        3: "field-name-field-game",
+                        4: "field-name-field-category",
+                        5: "field-name-field-requirements",
+                        6: "field-name-field-language",
+                        7: "field-name-field-tags",
+                        8: "field-name-field-files",
+                        9: "field-name-field-related-projects",
+                        10: "field-name-field-permissions-licensing",
+                        11: "field-name-field-required-projects"
+        }
 
 
 def request(website: Website):
@@ -58,12 +58,14 @@ def scrap_nwn_module(website: Website) -> dict:
               "compression": "",
               "author": None,
               "last_changed": None,
-              "project_version": 0,
+              "version": "Release",
               "game": "",
               "category": "",
               "tags": [],
-              "related-projects": [],
-              "license": ""
+              "required projects": [],
+              "related projects": [],
+              "license": "",
+              "requirements": []
               }
     response = requests.get(website.www())
     soup = BeautifulSoup(response.text, "html.parser")
@@ -71,12 +73,53 @@ def scrap_nwn_module(website: Website) -> dict:
 
     # Get a link as a str
     result["href"] = website_root.www() + link["href"]
+
     # Get a title
-    result["title"] = link["title"]
+    try:
+        result["title"] = link["title"]
+    except KeyError:
+        result["title"] = "title"
+
     # Get a size of a file.
     result["size"] = link["type"][re.search("length=", link["type"]).end():]
+
     # Get a compression
     result["compression"] = link["type"][re.search("/", link["type"]).start() + 1: re.search(";", link["type"]).start()]
+
+    # Get an author's name
+    _string = soup.find("span", attrs={"class", re.compile("username")})
+    if _string:
+        result["author"] = re.split("/", _string["about"])[-1]
+
+    # Get last change date
+    _string = soup.find("div", attrs={"class", re.compile(REPatterns.Module.strings_dict[1])})
+    if _string:
+        _date = "-".join(filter(lambda x: x != '', re.split("\D", _string.text)))
+        result["last_changed"] = _date
+
+    def get_result_value(i: int, splitter=":"):
+        __string = soup.find("div", attrs={"class", re.compile(REPatterns.Module.strings_dict[i])})
+        if __string:
+            __key, *__value = re.split(splitter, __string.text)
+            __key = __key.lower()
+            for item in __value:
+                __value.remove(item)
+                item = item.strip()
+                __value.append(item)
+            return __key, __value
+        return None, None
+
+    # Get a project version, game name, category in vault, language
+    for i in (2, 3, 4, 6):
+        key, value = get_result_value(i)
+        if key and value:
+            result[key] = value[0]
+
+    # Get a tags and requirements (OC, Xp1, Xp2)
+    for i in (5, 7, 9, 11):
+        key, value = get_result_value(i)
+        if key and value:
+            result[key] = value
 
     return result
 
@@ -85,4 +128,4 @@ if __name__ == '__main__':
     website_root = Website("https://neverwintervault.org")
     website_2 = Website("https://neverwintervault.org/article/reference/campaigns-and-module-series-list-nwn1")
     website_with_module = Website("https://neverwintervault.org/project/nwn1/module/enigma-island-complete")
-    scrap_nwn_module(website_with_module)
+    website_with_patch = Website("https://neverwintervault.org/project/nwnee/other/patch/community-music-pack-fix-nwnee")
