@@ -1,5 +1,5 @@
 import unittest
-from main import NWN
+from mainLib import NWN
 
 
 class TestNWN(unittest.TestCase):

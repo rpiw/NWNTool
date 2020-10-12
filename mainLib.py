@@ -1,3 +1,6 @@
+"""
+    This is a main module for the project. Run program from run.py file
+"""
 import datetime
 from enum import Enum, unique
 import pathlib
@@ -5,54 +8,7 @@ import os
 from exceptions import UnknownVersionException
 from exceptions import DirectoryDoesNotExistsException
 import pickle
-
-
-class Log:
-    u"""Maintain writing a log."""
-    instance = None
-    _limit = 1000  # Amount of characters to cache
-    _force = False
-
-    class __Log:
-        def __init__(self, name):
-            self.name = name + datetime.datetime.now().strftime("%Y_%m_%d_%H%M")
-            self.log = []
-
-    def __init__(self, name):
-        if not Log.instance:
-            Log.instance = Log.__Log(name)
-        else:
-            Log.instance.name = name + datetime.datetime.now().strftime("%Y_%m_%d_%H%M")
-
-    def __getattr__(self, item):
-        return getattr(self.instance, item)
-
-    @staticmethod
-    def return_instance():
-        return Log.instance
-
-    def write(self):
-        with open(self.name, "a") as _log:
-            for line in self.log:
-                line = line + "\n"
-                _log.write(line)
-        self.log.clear()
-
-    def cache(self, data):
-        if data is not str:
-            try:
-                data = str(data)
-            except TypeError:
-                data = "Could not convert data to string."
-        self.log.append(data)
-        if len(self.log) >= Log._limit:
-            self.write()
-            self._force = False
-        elif self._force:
-            self.write()
-
-    def force_write(self):
-        self._force = True
+import logging
 
 
 class GlobalNameSpace:
@@ -69,12 +25,10 @@ class GlobalNameSpace:
             exists = p.exists()
             is_directory = p.is_dir()
         except OSError:
-            log.cache("Invalid path.")
             return ""
         finally:
             if exists and is_directory:
                 return path
-            log.cache("Directory does not exist or path is invalid.")
             return ""
 
 
@@ -100,7 +54,7 @@ class Config:
             with open(self._file, "r") as f:
                 self.set_config(json.load(f))
         except FileNotFoundError:
-            log.cache("Config file not found!")
+            logging.error("File config not found! Using default settings!")
 
     def set_config(self, _cfg):
         self._config = _cfg
@@ -291,11 +245,13 @@ class File:
         return self._extensions
 
 
-if __name__ == '__main__':
-    log = Log(name="log")
-    log.force_write()
+def main():
     cfg = Config()
     cfg.read_config_file()
     c = cfg.get_config()
     nwn = NWN(c["diamond_version_local_dir"], GlobalNameSpace.known_versions[1])
     modules = nwn.find_modules()
+
+
+if __name__ == '__main__':
+    main()

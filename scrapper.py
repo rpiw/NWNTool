@@ -3,6 +3,7 @@ import requests
 import re
 import validators
 from exceptions import InvalidUrl
+import sys
 
 
 class Website:
@@ -15,9 +16,6 @@ class Website:
 
     def www(self):
         return self.website
-
-    def __add__(self, other):
-        return Website(self.www() + other.www())
 
 
 class REPatterns:
@@ -73,7 +71,11 @@ def scrap_nvn_vault(website: Website) -> dict:
               "related projects": [],
               "requirements": []
               }
-    response = requests.get(website.www())
+    try:
+        response = requests.get(website.www())
+    except (requests.RequestException, requests.ConnectionError, requests.HTTPError, requests.Timeout) as e:
+        sys.exc_info(e)
+
     soup = BeautifulSoup(response.text, "html.parser")
     link = soup.find("a", attrs={"href": REPatterns.module_src})
 
