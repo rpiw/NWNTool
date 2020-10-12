@@ -1,7 +1,6 @@
 """
     This is a main module for the project. Run program from run.py file
 """
-import datetime
 from enum import Enum, unique
 import pathlib
 import os
@@ -251,6 +250,7 @@ def main():
     c = cfg.get_config()
     nwn = NWN(c["diamond_version_local_dir"], GlobalNameSpace.known_versions[1])
     modules = nwn.find_modules()
+    logging.info("Modules found: {0}".format(modules))
 
 
 if __name__ == '__main__':
