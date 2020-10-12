@@ -1,10 +1,12 @@
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 class GeneralException(Exception):
 
     def __init__(self, message: str):
-        logging.error(message)
+        logger.error(message)
         super(GeneralException, self).__init__()
 
 
