@@ -38,6 +38,14 @@ def main():
     mainLib.main()
 
     nwn = mainLib.NWN.get_instance()
+    for m in nwn.show_modules():
+        #print(m)
+        pass
+
+    nwn_ee = mainLib.NWN.get_instance(1)
+    print(nwn_ee.path)
+    for m in nwn_ee.show_modules():
+        print(m)
 
 
 if __name__ == '__main__':

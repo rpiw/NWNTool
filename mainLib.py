@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 class GlobalNameSpace:
     u"""Class for keeping everything not fitting to other classes."""
-    known_versions = {0: "enhanced_edition", 1: "diamond_edition"}
+    known_versions = {0: "diamond_edition",
+                      1: "enhanced_edition"
+                      }
     file_with_saved_modules = "modules_bin"
     install_directory = "."
 
@@ -79,31 +81,68 @@ class Config:
               self.enhanced_version, self.enhanced_version_local_dir)
 
 
+class Pair:
+
+    def __init__(self, first=None, second=None):
+        self.first = first
+        self.second = second
+
+    def __setitem__(self, key, value):
+        if not isinstance(key, int):
+            raise TypeError
+        if key == 0:
+            self.first = value
+        elif key == 1:
+            self.second = value
+        else:
+            raise IndexError
+
+    def __getitem__(self, item):
+        if item == 0:
+            return self.first
+        elif item == 1:
+            return self.second
+        else:
+            raise IndexError
+
+    def not_none(self):
+        if self.first and self.second:
+            return True
+        return False
+
+
 class NWN:
     u"""Class recognizing type of the game."""
-    _instance = None
+    _instances = Pair()  # idx = 0 -> DIAMOND, idx = 1 -> ENHANCED EDITION
+    _cfg = Config()
+    _cfg.read_config_file()
 
     @staticmethod
-    def get_instance():
-        if NWN._instance:
-            return NWN._instance
+    def get_instance(idx: int = 0):
+        if NWN._instances.not_none():
+            return NWN._instances[idx]
         else:
-            c = Config.get_config()
-            NWN(c["diamond_version_local_dir"], GlobalNameSpace.known_versions[1])
+            if not NWN._instances[0]:
+                return NWN(NWN._cfg.get_config()["diamond_version_local_dir"], GlobalNameSpace.known_versions[0])
+            elif not NWN._instances[1]:
+                return NWN(NWN._cfg.get_config()["enhanced_version_local_dir"], GlobalNameSpace.known_versions[1])
 
     def __init__(self, path_to_dir, version):
-        if NWN._instance:
+        if NWN._instances.not_none():
             return
         self.path = pathlib.Path(GlobalNameSpace.check_path(path_to_dir))
         try:
             self.version = NWN.check_version(version)
         except UnknownVersionException:
             self.version = ""
-        self.directory = Directory(self.path)
-        self.directories = list(d for d in self.directory.listdir if pathlib.Path(d).is_dir())
-        self.files = list(d for d in self.directory.listdir if pathlib.Path(d).is_file())
+        self.directory_install = Directory(self.path)
+        self.directories = list(d for d in self.directory_install.listdir if pathlib.Path(d).is_dir())
+        self.files = list(d for d in self.directory_install.listdir if pathlib.Path(d).is_file())
         self._saved_modules_bin = pathlib.Path(".")
-        NWN._instance = self
+        if self.version == GlobalNameSpace.known_versions[0]:
+            NWN._instances[0] = self
+        elif self.version == GlobalNameSpace.known_versions[1]:
+            NWN._instances[1] = self
         self._modules = self.find_modules()
 
     def find_modules(self):
@@ -297,13 +336,14 @@ class Directory:
             with os.scandir(self.path) as it:
                 for entry in it:
                     self.listdir.append(self.path.joinpath(pathlib.Path(entry.name)))
+        self.empty = False if len(self.listdir) > 0 else True
 
 
 def main():
     cfg = Config()
     cfg.read_config_file()
     c = cfg.get_config()
-    nwn = NWN(c["diamond_version_local_dir"], GlobalNameSpace.known_versions[1])
+    nwn = NWN(c["diamond_version_local_dir"], GlobalNameSpace.known_versions[0])
 
 
 if __name__ == '__main__':
