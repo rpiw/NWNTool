@@ -8,6 +8,8 @@ from exceptions import UnknownVersionException
 from exceptions import DirectoryDoesNotExistsException
 import pickle
 import logging
+import scrapper
+import zipfile
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +58,23 @@ class Config:
     u"""Config file."""
     _keys = ("system",
              "diamond_version", "diamond_version_local_dir",
-             "enhanced_version",  "enhanced_version_local_dir")
+             "enhanced_version",  "enhanced_version_local_dir",
+             "tool_directory")
+
+    _instance = None
+
+    @staticmethod
+    def initialize(file="config.json"):
+        if Config._instance:
+            return
+        else:
+            Config._instance = Config(file)
 
     def __init__(self, file="config.json"):
         self._config = {}
         self._file = file
         self._working_dir = os.getcwd()
+        self._module_dir = self._working_dir + "/modules"
         self.system_type = {0: "linux", 1: "windows", 2: "macOS"}
         self.system = self.system_type[1]
         self.diamond_version = ""
@@ -72,6 +85,13 @@ class Config:
         self.read_config_file()
         logger.debug("Creating config from file: {0}".format(
                                                     pathlib.Path(os.getcwd()).joinpath(file)))
+        Config._instance = self
+
+    def get_modules_dir(self):
+        return self._module_dir
+
+    def get_dict(self):
+        return self._config
 
     def read_config_file(self):
         import json
@@ -88,9 +108,17 @@ class Config:
         self.diamond_version_local_dir = _cfg[Config._keys[2]]
         self.enhanced_version = _cfg[Config._keys[3]]
         self.enhanced_version_local_dir = _cfg[Config._keys[4]]
+        self._working_dir = _cfg[Config._keys[5]]
 
-    def get_config(self):
-        return self._config
+    @classmethod
+    def get_config(cls):
+        if Config._instance:
+            return Config._instance
+        else:
+            return Config()
+
+    def pwd(self):
+        return self._working_dir
 
     def print_properties(self):
         print(self.system,
@@ -157,7 +185,7 @@ class NWN:
         self._modules = {"local": self.find_modules(self.directory_local),
                          "install": [self.find_modules(self.directory_install)]}
 
-        self.modules = list(set(self._modules["local"] + self._modules["install"]))
+        self.modules = list(self._modules["local"] + self._modules["install"])
 
     @classmethod
     def find_modules(cls, directory: Directory):
@@ -192,6 +220,41 @@ class NWN:
 
     def show_modules(self):
         return self.modules
+
+    def download_module_from_vault(self, www: str, name: str):
+        module = scrapper.download_module_from_website(www)
+        path = Config().get_config().pwd() + "/" + name
+        output_path = Config().get_config().get_modules_dir()
+        module.save_file(path)
+
+        # detect type of compression
+        import re
+        comp = module.compression
+        if re.search("7z", comp):
+            from pyunpack import Archive
+            Archive(path).extractall(output_path)
+        elif re.search("zip", comp):
+            with zipfile.ZipFile(path, "r") as file:
+                file.extractall(output_path)
+        elif re.search("rar", comp):
+            import rarfile
+            with rarfile.RarFile(path) as rf:
+                rf.extractall(output_path)
+        else:
+            logger.error("Could NOT decompress the file!")
+            return
+        self.create_module_from_scrapper_data(module)
+        logger.info("Successfully decompressed file.")
+
+    def create_module_from_scrapper_data(self, module_data: scrapper.ScrappedModule):
+        path = pathlib.Path(Config().get_modules_dir()).joinpath(module_data.name)
+        m = ModuleInDir(path)
+        m.name = module_data.kwargs["kwargs"]["title"]
+        m.title = m.name
+        m.author = module_data.kwargs["kwargs"]["author"]
+        m.tags = module_data.kwargs["kwargs"]["tags"]
+        self.save_module(m)
+        logger.debug("Saving module to list of modules.")
 
     @staticmethod
     def check_version(version):
@@ -337,7 +400,7 @@ class OwnedModules:
 def main():
     cfg = Config()
     cfg.read_config_file()
-    c = cfg.get_config()
+    c = cfg.get_dict()
 
     # Diamond Edition from gog
     cfg_diamond = NWNConfig(c["diamond_version"],

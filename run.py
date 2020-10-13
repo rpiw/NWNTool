@@ -15,7 +15,7 @@ def clear_log_file(filename):
         pass
 
 
-def main():
+def main(*args, **kwargs):
     clear_log_file(logger_name)
     logger = logging.getLogger()
     if debug:
@@ -38,6 +38,13 @@ def main():
 
     nwn_diamond, nwn_ee = mainLib.main()
 
+    nwn_diamond.download_module_from_vault(kwargs["www"], "enigma")
+
+    l = nwn_diamond.show_modules()
+    for m in l:
+        print(m)
+
 
 if __name__ == '__main__':
-    main()
+    website_with_module = "https://neverwintervault.org/project/nwn1/module/enigma-island-complete"
+    main(www=website_with_module)

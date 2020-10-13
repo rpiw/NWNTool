@@ -4,6 +4,9 @@ import re
 import validators
 from exceptions import InvalidUrl
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Website:
@@ -79,8 +82,11 @@ def scrap_nvn_vault(website: Website) -> dict:
     soup = BeautifulSoup(response.text, "html.parser")
     link = soup.find("a", attrs={"href": REPatterns.module_src})
 
+    website_root = Website("https://neverwintervault.org")
+
     # Get a link as a str
     result["href"] = website_root.www() + link["href"]
+    logger.debug("Link found: {}".format(result["href"]))
 
     # Get a title
     try:
@@ -130,6 +136,38 @@ def scrap_nvn_vault(website: Website) -> dict:
             result[key] = value
 
     return result
+
+
+class ScrappedModule:
+
+    def __init__(self, name=None, file=None, compression=None, *args, **kwargs):
+        self.name = name
+        self.file = file
+        self.compression = compression
+        logger.debug("Compression of a file: {}".format(self.compression))
+        self.args = args
+        self.kwargs = kwargs
+
+    def save_file(self, path):
+        with open(path, "wb") as file:
+            file.write(self.file)
+
+
+def download_module_from_website(www: str):
+    www = Website(www)
+    data = scrap_nvn_vault(www)
+    url = data["href"]
+    if not validators.url(url):
+        raise InvalidUrl
+
+    logger.debug("Attempting to send a request at address {}".format(url))
+    r = requests.get(url, allow_redirects=True)
+    logger.debug("Received a response: {}".format(r))
+
+    module = ScrappedModule(data["title"], r.content, compression=data["compression"], kwargs=data)
+    logger.debug("Returning module with data.")
+
+    return module
 
 
 if __name__ == '__main__':
