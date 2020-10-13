@@ -11,7 +11,7 @@ debug = True
 
 
 def clear_log_file(filename):
-    with open(filename, "w") as f:
+    with open(filename, "w"):
         pass
 
 
@@ -35,17 +35,8 @@ def main():
     logger.addHandler(ch)
 
     logging.debug("Program starts at {0}".format(datetime.now().strftime("%d/%m/%Y, %H:%M")))
-    mainLib.main()
 
-    nwn = mainLib.NWN.get_instance()
-    for m in nwn.show_modules():
-        #print(m)
-        pass
-
-    nwn_ee = mainLib.NWN.get_instance(1)
-    print(nwn_ee.path)
-    for m in nwn_ee.show_modules():
-        print(m)
+    nwn_diamond, nwn_ee = mainLib.main()
 
 
 if __name__ == '__main__':

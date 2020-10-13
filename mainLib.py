@@ -35,6 +35,23 @@ class GlobalNameSpace:
             return ""
 
 
+class Directory:
+    u"""Represent a directory."""
+
+    def __init__(self, path):
+        p = pathlib.Path(path)
+        if not p.exists():
+            raise DirectoryDoesNotExistsException
+        else:
+            self.path = p
+            self.listdir = []
+
+            with os.scandir(self.path) as it:
+                for entry in it:
+                    self.listdir.append(self.path.joinpath(pathlib.Path(entry.name)))
+        self.empty = False if len(self.listdir) > 0 else True
+
+
 class Config:
     u"""Config file."""
     _keys = ("system",
@@ -81,6 +98,13 @@ class Config:
               self.enhanced_version, self.enhanced_version_local_dir)
 
 
+class NWNConfig:
+
+    def __init__(self, path_to_install_dir, path_to_local_dir):
+        self.dir_install = pathlib.Path(path_to_install_dir)
+        self.dir_local = pathlib.Path(path_to_local_dir)
+
+
 class Pair:
 
     def __init__(self, first=None, second=None):
@@ -113,44 +137,35 @@ class Pair:
 
 class NWN:
     u"""Class recognizing type of the game."""
-    _instances = Pair()  # idx = 0 -> DIAMOND, idx = 1 -> ENHANCED EDITION
-    _cfg = Config()
-    _cfg.read_config_file()
 
-    @staticmethod
-    def get_instance(idx: int = 0):
-        if NWN._instances.not_none():
-            return NWN._instances[idx]
-        else:
-            if not NWN._instances[0]:
-                return NWN(NWN._cfg.get_config()["diamond_version_local_dir"], GlobalNameSpace.known_versions[0])
-            elif not NWN._instances[1]:
-                return NWN(NWN._cfg.get_config()["enhanced_version_local_dir"], GlobalNameSpace.known_versions[1])
-
-    def __init__(self, path_to_dir, version):
-        if NWN._instances.not_none():
+    def __init__(self, nwn_config: NWNConfig, version: str):
+        if not isinstance(nwn_config, NWNConfig):
             return
-        self.path = pathlib.Path(GlobalNameSpace.check_path(path_to_dir))
+        self.cfg = nwn_config
         try:
             self.version = NWN.check_version(version)
         except UnknownVersionException:
             self.version = ""
-        self.directory_install = Directory(self.path)
+
+        self.directory_install = Directory(self.cfg.dir_install)
+        self.directory_local = Directory(self.cfg.dir_local)
+
         self.directories = list(d for d in self.directory_install.listdir if pathlib.Path(d).is_dir())
         self.files = list(d for d in self.directory_install.listdir if pathlib.Path(d).is_file())
-        self._saved_modules_bin = pathlib.Path(".")
-        if self.version == GlobalNameSpace.known_versions[0]:
-            NWN._instances[0] = self
-        elif self.version == GlobalNameSpace.known_versions[1]:
-            NWN._instances[1] = self
-        self._modules = self.find_modules()
 
-    def find_modules(self):
+        self._saved_modules_bin = pathlib.Path(".")  # for serialization with pickle
+        self._modules = {"local": self.find_modules(self.directory_local),
+                         "install": [self.find_modules(self.directory_install)]}
+
+        self.modules = list(set(self._modules["local"] + self._modules["install"]))
+
+    @classmethod
+    def find_modules(cls, directory: Directory):
         results = []
         iterator = []
-        for d in self.directories:
+        for d in directory.listdir:
             if d.name == "modules":  # Standard for all NWN versions!
-                iterator = os.scandir(self.path.joinpath(pathlib.Path("modules")))
+                iterator = os.scandir(directory.path.joinpath(pathlib.Path("modules")))
         for m in iterator:
             if str(m.name).endswith(".mod"):
                 module = ModuleInDir(m)
@@ -158,28 +173,25 @@ class NWN:
                 module.title = m.name.replace(".mod", "")
                 module.path = m.path
                 results.append(module)
-        logger.info("Found {0} modules at {1}.".format(len(results), os.getcwd()))
+        logger.info("Found {0} modules at {1}.".format(len(results), directory.path))
 
         return results
 
-    def save_modules(self):
-        self._modules = OwnedModules(self.find_modules())
-
     def save_module(self, module):
-        self._modules.append(module)
+        self.modules.append(module)
 
     def save_module_unique(self, module):
-        if all([module.__ne__(x) for x in self._modules]):
-            self._modules.append(module)
+        if all([module.__ne__(x) for x in self.modules]):
+            self.modules.append(module)
 
     def save_modules_list_to_file(self, filename):
-        pickle.dumps(self._modules, filename)
+        pickle.dumps(self.modules, filename)
 
     def load_modules_list(self, filename):
-        self._modules = pickle.load(filename)
+        self.modules = pickle.load(filename)
 
     def show_modules(self):
-        return self._modules
+        return self.modules
 
     @staticmethod
     def check_version(version):
@@ -322,28 +334,22 @@ class OwnedModules:
             print(string)
 
 
-class Directory:
-    u"""Represent a directory."""
-
-    def __init__(self, path):
-        p = pathlib.Path(path)
-        if not p.exists():
-            raise DirectoryDoesNotExistsException
-        else:
-            self.path = p
-            self.listdir = []
-
-            with os.scandir(self.path) as it:
-                for entry in it:
-                    self.listdir.append(self.path.joinpath(pathlib.Path(entry.name)))
-        self.empty = False if len(self.listdir) > 0 else True
-
-
 def main():
     cfg = Config()
     cfg.read_config_file()
     c = cfg.get_config()
-    nwn = NWN(c["diamond_version_local_dir"], GlobalNameSpace.known_versions[0])
+
+    # Diamond Edition from gog
+    cfg_diamond = NWNConfig(c["diamond_version"],
+                            c["diamond_version_local_dir"])
+    nwn_diamond = NWN(cfg_diamond, GlobalNameSpace.known_versions[0])
+
+    # Enhanced Edition from Steam
+    cfg_ee = NWNConfig(c["enhanced_version"],
+                       c["enhanced_version_local_dir"])
+    nwn_ee = NWN(cfg_ee, GlobalNameSpace.known_versions[1])
+
+    return nwn_diamond, nwn_ee
 
 
 if __name__ == '__main__':
