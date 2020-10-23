@@ -38,7 +38,8 @@ def main(*args, **kwargs):
 
     nwn_diamond, nwn_ee = mainLib.main()
 
-    nwn_diamond.download_module_from_vault(kwargs["www"], "enigma")
+    module = nwn_diamond.download_module_from_vault(kwargs["www"], "enigma")
+    nwn_diamond.create_module_from_scrapper_data(module)
 
     l = nwn_diamond.show_modules()
     for m in l:

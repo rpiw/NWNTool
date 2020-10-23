@@ -24,7 +24,7 @@ class Website:
 class REPatterns:
     nwn1 = re.compile("nwn1/module")
     http = re.compile('^http://')
-    module_src = re.compile("modules")
+    module_src = re.compile("/modules/")
 
     class Module:
         strings_dict = {
@@ -76,16 +76,18 @@ def scrap_nvn_vault(website: Website) -> dict:
               }
     try:
         response = requests.get(website.www())
-    except (requests.RequestException, requests.ConnectionError, requests.HTTPError, requests.Timeout) as e:
-        sys.exc_info(e)
+    except (requests.RequestException, requests.ConnectionError, requests.HTTPError, requests.Timeout):
+        logger.error(sys.exc_info())
+        sys.exit()
 
     soup = BeautifulSoup(response.text, "html.parser")
     link = soup.find("a", attrs={"href": REPatterns.module_src})
 
     website_root = Website("https://neverwintervault.org")
 
+    from urllib.parse import urljoin
     # Get a link as a str
-    result["href"] = website_root.www() + link["href"]
+    result["href"] = urljoin(website_root.www(), link["href"])
     logger.debug("Link found: {}".format(result["href"]))
 
     # Get a title

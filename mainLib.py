@@ -221,7 +221,8 @@ class NWN:
     def show_modules(self):
         return self.modules
 
-    def download_module_from_vault(self, www: str, name: str):
+    @staticmethod
+    def download_module_from_vault(www: str, name: str) -> scrapper.ScrappedModule:
         module = scrapper.download_module_from_website(www)
         path = Config().get_config().pwd() + "/" + name
         output_path = Config().get_config().get_modules_dir()
@@ -243,8 +244,8 @@ class NWN:
         else:
             logger.error("Could NOT decompress the file!")
             return
-        self.create_module_from_scrapper_data(module)
         logger.info("Successfully decompressed file.")
+        return module
 
     def create_module_from_scrapper_data(self, module_data: scrapper.ScrappedModule):
         path = pathlib.Path(Config().get_modules_dir()).joinpath(module_data.name)
