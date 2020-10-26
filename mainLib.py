@@ -251,6 +251,7 @@ class NWN:
         path = pathlib.Path(Config().get_modules_dir()).joinpath(module_data.name)
         m = ModuleInDir(path)
         m.name = module_data.kwargs["kwargs"]["title"]
+        print(module_data.kwargs)
         m.title = m.name
         m.author = module_data.kwargs["kwargs"]["author"]
         m.tags = module_data.kwargs["kwargs"]["tags"]
