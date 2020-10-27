@@ -243,7 +243,9 @@ class NWN:
                 rf.extractall(output_path)
         else:
             logger.error("Could NOT decompress the file!")
-            return
+            from exceptions import UnknownCompressionException
+            raise UnknownCompressionException
+
         logger.info("Successfully decompressed file.")
         return module
 

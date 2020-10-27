@@ -42,7 +42,7 @@ class REPatterns:
         }
 
 
-def request(website: Website):
+def request_http(website: Website):
     response = requests.get(website.www())
     soup = BeautifulSoup(response.text, "html.parser")
     for link in soup.find_all('a', attrs={'href': REPatterns.http}):
@@ -51,7 +51,7 @@ def request(website: Website):
 
 def create_list_of_links() -> list:
     result = []
-    for e in request(website_2.www()):
+    for e in request_http(website_2.www()):
         if REPatterns.nwn1.search(e):
             result.append(e)
     return result

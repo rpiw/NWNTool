@@ -10,24 +10,29 @@ class GeneralException(Exception):
         super(GeneralException, self).__init__()
 
 
-class UnknownVersionException(Exception):
+class UnknownVersionException(GeneralException):
     """Raised when passed unrecognized argument 'version' to NWN class initializer.
     Attributes:
         version -- wrong argument passed to initializer."""
     def __init__(self, version):
-        self.message = "Unrecognized version of Neverwinter Nights: {0}".format(version)
-        super().__init__(self.message)
+        super(UnknownVersionException, self).__init__(
+            "Unrecognized version of Neverwinter Nights: {0}".format(version))
 
 
-class DirectoryDoesNotExistsException(Exception):
+class DirectoryDoesNotExistsException(GeneralException):
     """Raised when passed not existing path to a Directory class' initializer."""
     def __init__(self, path):
-        self.message = "Directory does not exists: {0}".format(path)
-        super().__init__(self.message)
+        super(DirectoryDoesNotExistsException, self).__init__(
+            "Directory does not exists: {0}".format(path))
 
 
-class InvalidUrl(Exception):
+class InvalidUrl(GeneralException):
     """Invalid url was provided."""
     def __init__(self):
-        self.message = "Address of website is not valid!"
-        super(InvalidUrl, self).__init__(self.message)
+        super(InvalidUrl, self).__init__("Address of website is not valid!")
+
+
+class UnknownCompressionException(GeneralException):
+    u"""Unknown extension of compressed file."""
+    def __init__(self):
+        super(UnknownCompressionException, self).__init__("Unknown extension of compressed file")
