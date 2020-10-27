@@ -46,10 +46,10 @@ def main(*args, **kwargs):
 
     parser = parser_func()
     args = parser.parse_args()
-    print(vars(args))
 
     if debug:
         logger.setLevel(logging.DEBUG)
+    logger.debug("Starts with arguments: {}".format(vars(args)))
 
     fh = logging.FileHandler(logger_name, mode="w")
     fh.setLevel(logging.DEBUG)
@@ -65,6 +65,11 @@ def main(*args, **kwargs):
     logger.addHandler(ch)
 
     logging.debug("Program starts at {0}".format(datetime.now().strftime("%d/%m/%Y, %H:%M")))
+
+    if args.run:
+        from mainLib import Shell
+        logger.debug("Running CLI")
+        Shell().cmdloop()
 
     nwn_diamond, nwn_ee = mainLib.main()
 

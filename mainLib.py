@@ -4,12 +4,16 @@
 from enum import Enum, unique
 import pathlib
 import os
+from typing import List, Any
+
 from exceptions import UnknownVersionException
 from exceptions import DirectoryDoesNotExistsException
 import pickle
 import logging
 import scrapper
 import zipfile
+import cmd
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +62,7 @@ class Config:
     u"""Config file."""
     _keys = ("system",
              "diamond_version", "diamond_version_local_dir",
-             "enhanced_version",  "enhanced_version_local_dir",
+             "enhanced_version", "enhanced_version_local_dir",
              "tool_directory")
 
     _instance = None
@@ -69,6 +73,7 @@ class Config:
             return
         else:
             Config._instance = Config(file)
+        return None
 
     def __init__(self, file="config.json"):
         self._config = {}
@@ -84,7 +89,7 @@ class Config:
 
         self.read_config_file()
         logger.debug("Creating config from file: {0}".format(
-                                                    pathlib.Path(os.getcwd()).joinpath(file)))
+            pathlib.Path(os.getcwd()).joinpath(file)))
         Config._instance = self
 
     def get_modules_dir(self):
@@ -100,6 +105,7 @@ class Config:
                 self.set_config(json.load(f))
         except FileNotFoundError:
             logging.error("File config not found! Using default settings!")
+        return None
 
     def set_config(self, _cfg):
         self._config = _cfg
@@ -109,6 +115,7 @@ class Config:
         self.enhanced_version = _cfg[Config._keys[3]]
         self.enhanced_version_local_dir = _cfg[Config._keys[4]]
         self._working_dir = _cfg[Config._keys[5]]
+        return None
 
     @classmethod
     def get_config(cls):
@@ -165,6 +172,7 @@ class Pair:
 
 class NWN:
     u"""Class recognizing type of the game."""
+    _instances: List[Any] = []
 
     def __init__(self, nwn_config: NWNConfig, version: str):
         if not isinstance(nwn_config, NWNConfig):
@@ -186,6 +194,11 @@ class NWN:
                          "install": [self.find_modules(self.directory_install)]}
 
         self.modules = list(self._modules["local"] + self._modules["install"])
+        NWN._instances.append(self)
+
+    @staticmethod
+    def show_instances():
+        return NWN._instances
 
     @classmethod
     def find_modules(cls, directory: Directory):
@@ -249,16 +262,17 @@ class NWN:
         logger.info("Successfully decompressed file.")
         return module
 
-    def create_module_from_scrapper_data(self, module_data: scrapper.ScrappedModule):
+    @staticmethod
+    def create_module_from_scrapper_data(module_data: scrapper.ScrappedModule):
         path = pathlib.Path(Config().get_modules_dir()).joinpath(module_data.name)
         m = ModuleInDir(path)
         m.name = module_data.kwargs["kwargs"]["title"]
-        print(module_data.kwargs)
         m.title = m.name
         m.author = module_data.kwargs["kwargs"]["author"]
         m.tags = module_data.kwargs["kwargs"]["tags"]
-        self.save_module(m)
-        logger.debug("Saving module to list of modules.")
+        logger.debug("Creating module {} from scrapped data {}.".format(m.name, module_data.name))
+
+        return m
 
     @staticmethod
     def check_version(version):
@@ -358,6 +372,7 @@ class Module:
 
 class ModuleInDir(Module):
     u"""Represent a module inside game directory."""
+
     def __init__(self, path=pathlib.Path()):
         self.path = path
         super(ModuleInDir, self).__init__()
@@ -365,6 +380,7 @@ class ModuleInDir(Module):
 
 class ModuleInVault(Module):
     u"""Represent a module on a website."""
+
     def __init__(self, address):
         self.www = address
         self.file_address = ""
@@ -373,6 +389,7 @@ class ModuleInVault(Module):
 
 class OwnedModules:
     u"""Represent a list of owned modules inside game directory."""
+
     def __init__(self, list_of_modules=None):
         if list_of_modules is None:
             list_of_modules = []
@@ -399,6 +416,26 @@ class OwnedModules:
         for m in self._modules:
             string = "Name: {0}, path: {1}".format(m.name, m.path)
             print(string)
+
+
+class Shell(cmd.Cmd):
+    intro = "Welcome in NWNTool, type help for help."
+    prompt = "NWNTool "
+    file = None
+
+    def do_help(self, arg: str) -> None:
+        # TODO
+        print("It does not work.")
+
+    @staticmethod
+    def do_show_modules(*args):
+        nwn = NWN.show_instances()
+        for n in nwn:
+            print(n.show_modules(), sep="\n")
+
+    @staticmethod
+    def do_exit(*args):
+        sys.exit()
 
 
 def main():
