@@ -16,7 +16,8 @@ def parser_func() -> argparse.ArgumentParser:
     # Install
     parser_main.add_argument("-i", "--install", help="Installs NWNTool to store data on disk.", default=".")
     # Run
-    parser_main.add_argument("-r", "--run", help="Runs the program interactively.", default=".")
+    parser_main.add_argument("-r", "--run", help="Runs the program interactively.", default=".",
+                             nargs="?", const=".")
     # List modules on disk
     parser_main.add_argument("-ls", action="store_true", help="Lists modules found on disk.")
     # List modules on vault #TODO: Add categories to filter the list!
@@ -42,11 +43,12 @@ def install() -> bool:
 
 
 def main(*args, **kwargs):
-    logger = logging.getLogger()
-
+    # Arguments from parser
     parser = parser_func()
     args = parser.parse_args()
 
+    # Set up logging!
+    logger = logging.getLogger()
     if debug:
         logger.setLevel(logging.DEBUG)
     logger.debug("Starts with arguments: {}".format(vars(args)))
@@ -66,15 +68,23 @@ def main(*args, **kwargs):
 
     logging.debug("Program starts at {0}".format(datetime.now().strftime("%d/%m/%Y, %H:%M")))
 
+    # Register a session
+    from session import Session
+    session = Session()
+    session.debug = True if debug else False
+
+    # Check for arguments from CLI
     if args.run:
         from mainLib import Shell
         logger.debug("Running CLI")
-        Shell().cmdloop()
+        Shell().cmdloop(intro="Welcome in NWNTool.")
 
-    nwn_diamond, nwn_ee = mainLib.main()
+    # Test purpose only
+    # nwn_diamond, nwn_ee = mainLib.main()
 
     # module = nwn_diamond.download_module_from_vault(kwargs["www"], "enigma")
     # nwn_diamond.create_module_from_scrapper_data(module)
+    # End tests here
 
 
 if __name__ == '__main__':

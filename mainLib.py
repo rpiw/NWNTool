@@ -13,9 +13,10 @@ import logging
 import scrapper
 import zipfile
 import cmd
-import sys
+from session import Session
 
 logger = logging.getLogger(__name__)
+session = Session()
 
 
 class GlobalNameSpace:
@@ -174,6 +175,7 @@ class NWN:
     u"""Class recognizing type of the game."""
     _instances: List[Any] = []
 
+    @session.register
     def __init__(self, nwn_config: NWNConfig, version: str):
         if not isinstance(nwn_config, NWNConfig):
             return
@@ -428,14 +430,34 @@ class Shell(cmd.Cmd):
         print("It does not work.")
 
     @staticmethod
-    def do_show_modules(*args):
+    def do_show_modules(*args, **kwargs):
         nwn = NWN.show_instances()
-        for n in nwn:
-            print(n.show_modules(), sep="\n")
+        if len(nwn) == 0:
+            print("No modules were found. Run 'find' command to find any NWN directories.")
+        else:
+            for n in nwn:
+                print(n.show_modules(), sep="\n")
+
+    def do_find(self, *args, **kwargs):
+        pass
 
     @staticmethod
-    def do_exit(*args):
-        sys.exit()
+    def do_exit(*args, **kwargs):
+        return True
+
+    @staticmethod
+    def emptyline(*args, **kwargs) -> bool:
+        return False
+
+    @staticmethod
+    def do_show_register(*args, **kwargs):
+        if session.debug:
+            print("Tracked objects: ")
+            print(session.tracked_objects, sep="\n")
+            print("Tracked functions: ")
+            print(session.tracked_functions, sep="\n")
+            print("Tracked directories: ")
+            print(session.tracked_directories, sep="\n")
 
 
 def main():
