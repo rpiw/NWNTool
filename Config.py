@@ -34,11 +34,33 @@ class GameConfig:
     def __init__(self, game_edition, game_version, path, path_local):
         self.edition = game_edition  # Diamond/Enhanced
         self.version = game_version  # Build version
-        self.path = path  # Path to main game directory
-        self.path_to_local_vault = path_local
-        self.executable = None  # Game executable
+        home = pathlib.Path.home()
+        self.path = path if pathlib.Path(path).is_absolute() \
+            else pathlib.Path.joinpath(home, path)  # Path to main game directory
+        self.path_to_local_vault = path_local if pathlib.Path(path).is_absolute()\
+            else pathlib.Path.joinpath(home, path_local)
+
+        self.executable = self.find_exe()  # Game executable
         self.modules_directory = None  # Directory containing modules of the game
         self.hak = None  # Hakpacks
+
+    def __repr__(self):
+        return "Game Config:\nEdition: {0},\nversion: {1},\npath to main dir: {2},\npath to local: {3},\nmodules dir: {4},\nmain exe: {5}".format(
+            self.edition, self.version, self.path,
+            self.path_to_local_vault, self.modules_directory, self.executable
+        )
+
+    def find_exe(self):
+        exe = ""
+        if self.edition.lower() == "diamond_edition":
+            exe = "nwmain.exe"
+        elif self.edition.lower() == "enhanced_edition":
+            if platform.system().lower() == "linux":
+                exe = "bin/linux-x86/nwmain-linux"
+            elif platform.system().lower() == "windows":
+                exe = "bin/win32/nwmain.exe"
+        exe = pathlib.Path.joinpath(self.path, exe)
+        return pathlib.Path.joinpath(pathlib.Path.home(), exe)
 
 
 class ProgramConfig:
@@ -51,6 +73,10 @@ class ProgramConfig:
         self.history_file = ""  # File with history of user's action, by default should be in main directory
         self.modules = "modules"
 
+    def __repr__(self):
+        return """Program Config: main directory: {0}, stored config: {1}, modules list: {2}, modules list on vault:
+         {3}""".format(self.main_directory, self.config_file, self.modules_list_file, self.modules_list_in_vault_file)
+
 
 class Config:
     u"""General representation of all configuration info."""
@@ -58,20 +84,23 @@ class Config:
         self.game_config = game_cfg
         self.program_config = program_cfg
 
+    def __repr__(self):
+        return "\n".join((repr(self.game_config), repr(self.program_config)))
+
 
 class CurrentConfig(metaclass=singleton.Singleton):
     u"""Singleton to store currently used configuration."""
     def __init__(self, cfg=None):
-        self.__config = cfg if cfg is not None else ConfigFactory().create()
+        self._config = cfg if cfg is not None else ConfigFactory().create()
 
     @property
-    def __config(self):
-        return self.__config
+    def config(self):
+        return self._config
 
-    @__config.setter
-    def __config(self, new_cfg):
+    @config.setter
+    def config(self, new_cfg):
         if new_cfg is Config:
-            self.__config = new_cfg
+            self._config = new_cfg
             logger.debug("Changing configuration.")
 
     def save(self, file):
@@ -132,4 +161,8 @@ class ConfigFactory(AbstractConfigFactory):
         return Config(game, program)
 
 
-config = CurrentConfig()
+############################# Default ##############################
+prog = ProgramConfig(".")
+game = GameConfig("Diamond_Edition", "1.69", default_linux[0], default_linux[1])
+c = Config(game, prog)
+config = CurrentConfig(c)

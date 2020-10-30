@@ -373,6 +373,11 @@ class Shell(cmd.Cmd):
             print("Tracked directories: ")
             print(session.tracked_directories, sep="\n")
 
+    def do_show_config(self, *args, **kwargs):
+        u"""Shows configuration, debug only."""
+        if session.debug:
+            print(Config.config.config)
+
 
 def main():
     # diamond edition from gog
@@ -382,6 +387,12 @@ def main():
 
     return nwn_diamond, nwn_ee
 
+
+def install(path=".", modules_list=True):
+    u"""Install the program:
+        :path - str, place where the main directory is created, default .,
+        :modules_list - bool, if true, download from Vault modules list and save on disk default True"""
+    pass
 
 if __name__ == '__main__':
     main()
