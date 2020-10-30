@@ -36,3 +36,9 @@ class UnknownCompressionException(GeneralException):
     u"""Unknown extension of compressed file."""
     def __init__(self):
         super(UnknownCompressionException, self).__init__("Unknown extension of compressed file")
+
+
+class UnknownOSException(GeneralException):
+    u"""Unknown Operating System!"""
+    def __init__(self):
+        super(UnknownOSException, self).__init__("Unknown OS")

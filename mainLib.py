@@ -15,6 +15,7 @@ import zipfile
 import cmd
 from session import Session
 
+import Config
 logger = logging.getLogger(__name__)
 session = Session()
 
@@ -59,89 +60,7 @@ class Directory:
         self.empty = False if len(self.listdir) > 0 else True
 
 
-class Config:
-    u"""Config file."""
-    _keys = ("system",
-             "diamond_version", "diamond_version_local_dir",
-             "enhanced_version", "enhanced_version_local_dir",
-             "tool_directory")
-
-    _instance = None
-
-    @staticmethod
-    def initialize(file="config.json"):
-        if Config._instance:
-            return
-        else:
-            Config._instance = Config(file)
-        return None
-
-    def __init__(self, file="config.json"):
-        self._config = {}
-        self._file = file
-        self._working_dir = os.getcwd()
-        self._module_dir = self._working_dir + "/modules"
-        self.system_type = {0: "linux", 1: "windows", 2: "macOS"}
-        self.system = self.system_type[1]
-        self.diamond_version = ""
-        self.enhanced_version = ""
-        self.diamond_version_local_dir = ""
-        self.enhanced_version_local_dir = ""
-
-        self.read_config_file()
-        logger.debug("Creating config from file: {0}".format(
-            pathlib.Path(os.getcwd()).joinpath(file)))
-        Config._instance = self
-
-    def get_modules_dir(self):
-        return self._module_dir
-
-    def get_dict(self):
-        return self._config
-
-    def read_config_file(self):
-        import json
-        try:
-            with open(self._file, "r") as f:
-                self.set_config(json.load(f))
-        except FileNotFoundError:
-            logging.error("File config not found! Using default settings!")
-        return None
-
-    def set_config(self, _cfg):
-        self._config = _cfg
-        self.system = _cfg[Config._keys[0]]
-        self.diamond_version = _cfg[Config._keys[1]]
-        self.diamond_version_local_dir = _cfg[Config._keys[2]]
-        self.enhanced_version = _cfg[Config._keys[3]]
-        self.enhanced_version_local_dir = _cfg[Config._keys[4]]
-        self._working_dir = _cfg[Config._keys[5]]
-        return None
-
-    @classmethod
-    def get_config(cls):
-        if Config._instance:
-            return Config._instance
-        else:
-            return Config()
-
-    def pwd(self):
-        return self._working_dir
-
-    def print_properties(self):
-        print(self.system,
-              self.diamond_version, self.diamond_version_local_dir,
-              self.enhanced_version, self.enhanced_version_local_dir)
-
-
-class NWNConfig:
-
-    def __init__(self, path_to_install_dir, path_to_local_dir):
-        self.dir_install = pathlib.Path(path_to_install_dir)
-        self.dir_local = pathlib.Path(path_to_local_dir)
-
-
-class Pair:
+class Pair:  # This class is redundant
 
     def __init__(self, first=None, second=None):
         self.first = first
@@ -176,17 +95,11 @@ class NWN:
     _instances: List[Any] = []
 
     @session.register
-    def __init__(self, nwn_config: NWNConfig, version: str):
-        if not isinstance(nwn_config, NWNConfig):
-            return
-        self.cfg = nwn_config
-        try:
-            self.version = NWN.check_version(version)
-        except UnknownVersionException:
-            self.version = ""
-
-        self.directory_install = Directory(self.cfg.dir_install)
-        self.directory_local = Directory(self.cfg.dir_local)
+    def __init__(self):
+        from Config import CurrentConfig
+        cfg = CurrentConfig().__config
+        self.directory_install = Directory(cfg.game_config.path)
+        self.directory_local = Directory(cfg.game_config.path_to_local_vault)
 
         self.directories = list(d for d in self.directory_install.listdir if pathlib.Path(d).is_dir())
         self.files = list(d for d in self.directory_install.listdir if pathlib.Path(d).is_file())
@@ -239,8 +152,9 @@ class NWN:
     @staticmethod
     def download_module_from_vault(www: str, name: str) -> scrapper.ScrappedModule:
         module = scrapper.download_module_from_website(www)
-        path = Config().get_config().pwd() + "/" + name
-        output_path = Config().get_config().get_modules_dir()
+        cfg = Config.config
+        path = cfg.program_config.main_directory + "/" + name
+        output_path = cfg.program_config.modules
         module.save_file(path)
 
         # detect type of compression
@@ -266,7 +180,7 @@ class NWN:
 
     @staticmethod
     def create_module_from_scrapper_data(module_data: scrapper.ScrappedModule):
-        path = pathlib.Path(Config().get_modules_dir()).joinpath(module_data.name)
+        path = pathlib.Path(Config.config.program_config.modules).joinpath(module_data.name)
         m = ModuleInDir(path)
         m.name = module_data.kwargs["kwargs"]["title"]
         m.title = m.name
@@ -425,12 +339,9 @@ class Shell(cmd.Cmd):
     prompt = "NWNTool "
     file = None
 
-    def do_help(self, arg: str) -> None:
-        # TODO
-        print("It does not work.")
-
     @staticmethod
     def do_show_modules(*args, **kwargs):
+        """Prints all modules found on disk."""
         nwn = NWN.show_instances()
         if len(nwn) == 0:
             print("No modules were found. Run 'find' command to find any NWN directories.")
@@ -439,10 +350,12 @@ class Shell(cmd.Cmd):
                 print(n.show_modules(), sep="\n")
 
     def do_find(self, *args, **kwargs):
+        """Find Neverwinter Nights directory."""
         pass
 
     @staticmethod
     def do_exit(*args, **kwargs):
+        """Exit."""
         return True
 
     @staticmethod
@@ -451,6 +364,7 @@ class Shell(cmd.Cmd):
 
     @staticmethod
     def do_show_register(*args, **kwargs):
+        """Shows tracked objects, functions and directories. Works in debug mode only."""
         if session.debug:
             print("Tracked objects: ")
             print(session.tracked_objects, sep="\n")
@@ -461,19 +375,10 @@ class Shell(cmd.Cmd):
 
 
 def main():
-    cfg = Config()
-    cfg.read_config_file()
-    c = cfg.get_dict()
-
-    # Diamond Edition from gog
-    cfg_diamond = NWNConfig(c["diamond_version"],
-                            c["diamond_version_local_dir"])
-    nwn_diamond = NWN(cfg_diamond, GlobalNameSpace.known_versions[0])
-
+    # diamond edition from gog
+    nwn_diamond = NWN()
     # Enhanced Edition from Steam
-    cfg_ee = NWNConfig(c["enhanced_version"],
-                       c["enhanced_version_local_dir"])
-    nwn_ee = NWN(cfg_ee, GlobalNameSpace.known_versions[1])
+    nwn_ee = NWN()
 
     return nwn_diamond, nwn_ee
 
