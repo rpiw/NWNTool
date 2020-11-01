@@ -95,9 +95,9 @@ class NWN:
     _instances: List[Any] = []
 
     @session.register
-    def __init__(self):
-        from Config import CurrentConfig
-        cfg = CurrentConfig().__config
+    def __init__(self, cfg=None):
+        if cfg is None:
+            cfg = Config.config.config
         self.directory_install = Directory(cfg.game_config.path)
         self.directory_local = Directory(cfg.game_config.path_to_local_vault)
 
@@ -340,7 +340,7 @@ class Shell(cmd.Cmd):
     file = None
 
     @staticmethod
-    def do_show_modules(*args, **kwargs):
+    def do_modules(*args, **kwargs):
         """Prints all modules found on disk."""
         nwn = NWN.show_instances()
         if len(nwn) == 0:
@@ -351,7 +351,7 @@ class Shell(cmd.Cmd):
 
     def do_find(self, *args, **kwargs):
         """Find Neverwinter Nights directory."""
-        pass
+        main()
 
     @staticmethod
     def do_exit(*args, **kwargs):
@@ -363,7 +363,7 @@ class Shell(cmd.Cmd):
         return False
 
     @staticmethod
-    def do_show_register(*args, **kwargs):
+    def do_register(*args, **kwargs):
         """Shows tracked objects, functions and directories. Works in debug mode only."""
         if session.debug:
             print("Tracked objects: ")
@@ -373,26 +373,84 @@ class Shell(cmd.Cmd):
             print("Tracked directories: ")
             print(session.tracked_directories, sep="\n")
 
-    def do_show_config(self, *args, **kwargs):
+    def do_config(self, *args, **kwargs):
         u"""Shows configuration, debug only."""
         if session.debug:
             print(Config.config.config)
+
+    def do_install(self, *args, **kwargs):
+        u"""Run installation."""
+        from exceptions import InstallationAbortedException
+        force = False
+        path = "."
+        name = None
+        import re
+        try:
+            for kwarg in args:
+                if kwarg == "force":
+                    force = True
+                if "path=" in kwarg:
+                    path = re.split("=", kwarg)[-1]
+                if "name=" in kwarg:
+                    name = re.split("=", kwarg)[-1]
+            Install.install(path=path, force=force, name=name)
+        except InstallationAbortedException:
+            logger.debug("Installation has failed.")
 
 
 def main():
     # diamond edition from gog
     nwn_diamond = NWN()
-    # Enhanced Edition from Steam
-    nwn_ee = NWN()
 
-    return nwn_diamond, nwn_ee
+    return nwn_diamond
 
 
-def install(path=".", modules_list=True):
-    u"""Install the program:
-        :path - str, place where the main directory is created, default .,
-        :modules_list - bool, if true, download from Vault modules list and save on disk default True"""
-    pass
+class Install:
+    @staticmethod
+    @session.register
+    def install(path=".", name=None, force=False):
+        u"""Install the program:
+            :path - str, place where the main directory is created, default .,
+            :modules_list - bool, if true, download from Vault modules list and save on disk default True"""
+        logger.info("Starting installation.")
+        exceptions = []
+        directory_name = name if name else "NWNTool"
+
+        try:
+            if path == ".":
+                path = pathlib.Path.cwd()
+            directory = pathlib.Path.joinpath(path, pathlib.Path(directory_name))
+
+            if force:
+                logger.debug("Attempting to remove directory: {}".format(directory))
+                directory.rmdir()
+
+            os.chdir(path)
+            logger.debug("Current working directory: {}".format(pathlib.Path.cwd()))
+            logger.debug("Target directory: {}".format(directory))
+
+            if directory.is_dir():
+                logger.error("This directory should not exist yet...: {}".format(directory.is_dir()))
+
+            logger.debug("Attempting to create a target directory...")
+            pathlib.Path.mkdir(directory, parents=True)
+
+        except FileNotFoundError as excep:
+            logger.error("FileNotFoundError. Probably you missing parent of target directory: {}".format(directory))
+            exceptions.append(excep)
+        except FileExistsError as excep:
+            logger.error("Path is not empty! Directory exists: {}".format(directory))
+            exceptions.append(excep)
+        except OSError as excep:
+            exceptions.append(excep)
+        finally:
+            if exceptions:
+                logger.error("Installation aborted with an exception.")
+                from exceptions import InstallationAbortedException
+                raise InstallationAbortedException
+            else:
+                logger.info("Installation completed.")
+
 
 if __name__ == '__main__':
     main()

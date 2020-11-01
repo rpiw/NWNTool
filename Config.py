@@ -161,7 +161,26 @@ class ConfigFactory(AbstractConfigFactory):
         return Config(game, program)
 
 
-############################# Default ##############################
+class CreateConfigFromStdStream(AbstractConfigFactory):
+    def create(self, *args, **kwargs):
+        u"""Create config object and save to a file. Data is entered by a user via standard input."""
+        _exit = False
+
+        print("Interactive config creation procedure. You are welcome, human being!")
+
+        while not _exit:
+            try:
+                _input = input()
+                if "exit" == _input:
+                    print("Exiting to CLI")
+                    logger.debug("Exit config creation.")
+                    _exit = True
+            except TypeError:
+                print("""Wrong path provided, try again or type 'exit' the dialog and return to CLI
+                 or press Ctrl+C to abort.""")
+
+
+# ############################ Default ##############################
 prog = ProgramConfig(".")
 game = GameConfig("Diamond_Edition", "1.69", default_linux[0], default_linux[1])
 c = Config(game, prog)
