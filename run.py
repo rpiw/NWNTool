@@ -75,6 +75,9 @@ def main(*args, **kwargs):
 
     # Check for arguments from CLI
     if args.run:
+        # Add additional logging
+        ch.setLevel(logging.DEBUG)
+
         from mainLib import Shell
         logger.debug("Running CLI")
         Shell().cmdloop(intro="Welcome in NWNTool.")

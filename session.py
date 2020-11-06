@@ -19,4 +19,5 @@ class Session(metaclass=singleton.Singleton):
 
     def register(self, function):
         self.tracked_functions[function.__name__] = function
+        logger.debug("Calling a function: {}".format(function.__name__))
         return function
