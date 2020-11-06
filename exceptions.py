@@ -48,3 +48,9 @@ class InstallationAbortedException(GeneralException):
     u"""Thrown by a install function if any exception has occured."""
     def __init__(self):
         super(InstallationAbortedException, self).__init__("Installation aborted.")
+
+
+class CreateConfigFromStdStreamAbortedException(GeneralException):
+    u"""Thrown by a function CreateConfigFromStdStream if user type exit."""
+    def __init__(self):
+        super(CreateConfigFromStdStreamAbortedException, self).__init__("Config not created.")

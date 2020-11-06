@@ -2,80 +2,70 @@
 import singleton
 import logging
 import os
-from collections import namedtuple
 import pathlib
 import platform
 
 logger = logging.getLogger(__name__)
 
-keys = namedtuple("Keys", ["diamond_version", "diamond_version_local",
-                           "enhanced_version", "enhanced_version_local",
-                           "working_directory"])
-
-default_config_data = namedtuple("Default_Config", ["linux", "windows"])
-default_linux = keys(
+default_linux = (
                 ".wine/drive_c/GOG Games/NWN Diamond",
                 ".wine/drive_c/GOG Games/NWN Diamond",
                 ".steam/steam/steamapps/common/Neverwinter Nights",
-                ".local/share/Neverwinter Nights",
-                ".")
+                ".local/share/Neverwinter Nights")
 
-default_windows = keys("GOG Games/NWN Diamond",
-                       "GOG Games/NWN Diamond",
-                       "C://Program Files/steam/steamapps/common/Neverwinter Nights",
-                       ".",
-                       ".")
+default_windows = (r"GOG Games/NWN Diamond",
+                   r"GOG Games/NWN Diamond",
+                   r"C://Program Files/steam/steamapps/common/Neverwinter Nights",
+                   ".")  # idk where
 
-cfg = default_config_data(default_linux, default_windows)
+home = pathlib.Path.home()
+_join = pathlib.Path.joinpath
+_DEFAULT_DATA_EMPTY = False
+
+if platform.system() == "Linux":
+    default_directory = _join(home, pathlib.Path(r".local/share/NWNTool"))
+    default_path = _join(home, pathlib.Path(r".steam/steam/steamapps/common/Neverwinter Nights"))
+    default_local_path = _join(home, pathlib.Path(r".local/share/Neverwinter Nights"))
+elif platform.system() == "Windows":
+    default_directory = _join(home, "NWNTool")
+    default_path = _join(home, r"steam/steam/steamapps/common/Neverwinter Nights")
+    default_local_path = default_path  # TODO
+else:
+    default_directory = ""
+    default_path = ""
+    default_local_path = ""
+    _DEFAULT_DATA_EMPTY = True
+    logger.error("Unknown OS.")
 
 
 class GameConfig:
     u"""Contains game configuration."""
-    def __init__(self, game_edition, game_version, path, path_local):
-        self.edition = game_edition  # Diamond/Enhanced
-        self.version = game_version  # Build version
-        home = pathlib.Path.home()
+    def __init__(self, path, path_local):
         self.path = path if pathlib.Path(path).is_absolute() \
             else pathlib.Path.joinpath(home, path)  # Path to main game directory
         self.path_to_local_vault = path_local if pathlib.Path(path).is_absolute()\
             else pathlib.Path.joinpath(home, path_local)
 
-        self.executable = self.find_exe()  # Game executable
-        self.modules_directory = None  # Directory containing modules of the game
-        self.hak = None  # Hakpacks
+        # Directory containing modules of the game
+        self.modules_directory = pathlib.Path.joinpath(self.path_to_local_vault, "modules")
+        # Directory containing hakpacks
+        self.hak = pathlib.Path.joinpath(self.path_to_local_vault, "hak")
 
     def __repr__(self):
-        return "Game Config:\nEdition: {0},\nversion: {1},\npath to main dir: {2},\npath to local: {3},\nmodules dir: {4},\nmain exe: {5}".format(
-            self.edition, self.version, self.path,
-            self.path_to_local_vault, self.modules_directory, self.executable
+        return "Game Config:\npath to main dir: {},\npath to local: {},\nmodules dir: {}".format(
+            self.path, self.path_to_local_vault, self.modules_directory
         )
-
-    def find_exe(self):
-        exe = ""
-        if self.edition.lower() == "diamond_edition":
-            exe = "nwmain.exe"
-        elif self.edition.lower() == "enhanced_edition":
-            if platform.system().lower() == "linux":
-                exe = "bin/linux-x86/nwmain-linux"
-            elif platform.system().lower() == "windows":
-                exe = "bin/win32/nwmain.exe"
-        exe = pathlib.Path.joinpath(self.path, exe)
-        return pathlib.Path.joinpath(pathlib.Path.home(), exe)
 
 
 class ProgramConfig:
     u"""Contains program configuration. Init with path to working directory. If none, current directory is used."""
     def __init__(self, directory=None):
-        self.main_directory = directory if not directory else os.getcwd()  # Directory where all data is saved by a default
+        # Directory where all data is saved by a default, NOT GAME DIRECTORY
+        self.main_directory = directory if not directory else os.getcwd()
         self.config_file = ""  # File with config info, JSON
-        self.modules_list_file = ""  # File with listed modules found in game's directory
-        self.modules_list_in_vault_file = ""  # File with all modules names and www address to them
-        self.history_file = ""  # File with history of user's action, by default should be in main directory
-        self.modules = "modules"
 
     def __repr__(self):
-        return """Program Config: main directory: {0}, stored config: {1}, modules list: {2}, modules list on vault:
-         {3}""".format(self.main_directory, self.config_file, self.modules_list_file, self.modules_list_in_vault_file)
+        return """Program Config: main directory: {}, stored config: {}""".format(self.main_directory, self.config_file)
 
 
 class Config:
@@ -109,37 +99,17 @@ class CurrentConfig(metaclass=singleton.Singleton):
             json.dump(self, fi)
 
 
-class ExpectedConfig:
-    u"""Placeholder for known versions."""
-    edition = namedtuple("Edition", ["enhanced_edition", "diamond_edition"])
-
-
 class AbstractConfigFactory(object):
     def create(self, *args, **kwargs): pass
 
 
 class DefaultConfigFactory(AbstractConfigFactory):
     def create(self, *args, **kwargs):
-        game_edition = "Enhanced Edition"
-        game_version = "Release"
-        home = pathlib.Path.home()
-        OS = platform.system()
+        if _DEFAULT_DATA_EMPTY:
+            raise OSError
 
-        if OS == "Linux":
-            path = pathlib.Path.joinpath(home, pathlib.Path("./steam/steam/steamapps/Neverwinter Nights"))
-            directory = pathlib.Path.joinpath(home,
-                                              pathlib.Path(".local/share"))
-        elif OS == "Windows":
-            path = pathlib.Path.joinpath(home, "Steam")
-            directory = home
-        else:
-            from exceptions import UnknownOSException
-            raise UnknownOSException
-
-        path_local = pathlib.Path.joinpath(directory, pathlib.Path("Neverwinter Nights"))
-
-        game_cfg = GameConfig(game_edition, game_version, path, path_local)
-        prog_cfg = ProgramConfig(directory)
+        game_cfg = GameConfig(default_path, default_local_path)
+        prog_cfg = ProgramConfig(default_directory)
 
         return game_cfg, prog_cfg
 
@@ -147,9 +117,7 @@ class DefaultConfigFactory(AbstractConfigFactory):
 class ConfigFactory(AbstractConfigFactory):
     def create(self, *args, **kwargs):
         try:
-            game = GameConfig(kwargs["game_edition"],
-                              kwargs["game_version"],
-                              kwargs["path"])
+            game = GameConfig(kwargs["path"], kwargs["path_local"])
         except KeyError:
             game, _ = DefaultConfigFactory().create()
 
@@ -168,20 +136,42 @@ class CreateConfigFromStdStream(AbstractConfigFactory):
 
         print("Interactive config creation procedure. You are welcome, human being!")
 
+        questions = ("Enter path to main NWN Diamond Edition directory ",
+                     "Enter path to local directory of NWN Diamond Edition",
+                     "Enter path to NWN Enhanced Edition main directory",
+                     "Enter path to NWN Enhanced Edition local directory")
+
+        i = 0
+        question = questions[i]
+        answers = ["", "", "", "", "."]
+
         while not _exit:
             try:
+                print(question)
                 _input = input()
+                path = pathlib.Path(_input)
+
+                if not path.is_absolute():
+                    path = pathlib.Path.joinpath(pathlib.Path.cwd(), path)
+
+                answers[i] = str(path)
+
                 if "exit" == _input:
                     print("Exiting to CLI")
                     logger.debug("Exit config creation.")
                     _exit = True
+
             except TypeError:
                 print("""Wrong path provided, try again or type 'exit' the dialog and return to CLI
                  or press Ctrl+C to abort.""")
+            if _exit:
+                from exceptions import CreateConfigFromStdStreamAbortedException
+                raise CreateConfigFromStdStreamAbortedException
+
+            i += 1
+            if i == 4:
+                break
 
 
-# ############################ Default ##############################
-prog = ProgramConfig(".")
-game = GameConfig("Diamond_Edition", "1.69", default_linux[0], default_linux[1])
-c = Config(game, prog)
-config = CurrentConfig(c)
+# Default:
+config = CurrentConfig()

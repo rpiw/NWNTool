@@ -43,23 +43,6 @@ class GlobalNameSpace:
             return ""
 
 
-class Directory:
-    u"""Represent a directory."""
-
-    def __init__(self, path):
-        p = pathlib.Path(path)
-        if not p.exists():
-            raise DirectoryDoesNotExistsException
-        else:
-            self.path = p
-            self.listdir = []
-
-            with os.scandir(self.path) as it:
-                for entry in it:
-                    self.listdir.append(self.path.joinpath(pathlib.Path(entry.name)))
-        self.empty = False if len(self.listdir) > 0 else True
-
-
 class Pair:  # This class is redundant
 
     def __init__(self, first=None, second=None):
@@ -98,11 +81,11 @@ class NWN:
     def __init__(self, cfg=None):
         if cfg is None:
             cfg = Config.config.config
-        self.directory_install = Directory(cfg.game_config.path)
-        self.directory_local = Directory(cfg.game_config.path_to_local_vault)
+        self.directory_install = cfg.game_config.path
+        self.directory_local = cfg.game_config.path_to_local_vault
 
-        self.directories = list(d for d in self.directory_install.listdir if pathlib.Path(d).is_dir())
-        self.files = list(d for d in self.directory_install.listdir if pathlib.Path(d).is_file())
+        self.directories = list(d for d in os.scandir(self.directory_install) if pathlib.Path(d).is_dir())
+        self.files = list(d for d in os.scandir(self.directory_install) if pathlib.Path(d).is_file())
 
         self._saved_modules_bin = pathlib.Path(".")  # for serialization with pickle
         self._modules = {"local": self.find_modules(self.directory_local),
@@ -116,12 +99,12 @@ class NWN:
         return NWN._instances
 
     @classmethod
-    def find_modules(cls, directory: Directory):
+    def find_modules(cls, directory):
         results = []
         iterator = []
-        for d in directory.listdir:
+        for d in os.scandir(directory):
             if d.name == "modules":  # Standard for all NWN versions!
-                iterator = os.scandir(directory.path.joinpath(pathlib.Path("modules")))
+                iterator = os.scandir(pathlib.Path.joinpath(directory, pathlib.Path("modules")))
         for m in iterator:
             if str(m.name).endswith(".mod"):
                 module = ModuleInDir(m)
@@ -129,7 +112,7 @@ class NWN:
                 module.title = m.name.replace(".mod", "")
                 module.path = m.path
                 results.append(module)
-        logger.info("Found {0} modules at {1}.".format(len(results), directory.path))
+        logger.info("Found {0} modules at {1}.".format(len(results), directory))
 
         return results
 
@@ -387,7 +370,7 @@ class Shell(cmd.Cmd):
         import re
         try:
             for kwarg in args:
-                if kwarg == "force":
+                if kwarg == "-force":
                     force = True
                 if "path=" in kwarg:
                     path = re.split("=", kwarg)[-1]
@@ -399,10 +382,9 @@ class Shell(cmd.Cmd):
 
 
 def main():
-    # diamond edition from gog
-    nwn_diamond = NWN()
+    nwn = NWN()
 
-    return nwn_diamond
+    return nwn
 
 
 class Install:
@@ -413,6 +395,7 @@ class Install:
             :path - str, place where the main directory is created, default .,
             :modules_list - bool, if true, download from Vault modules list and save on disk default True"""
         logger.info("Starting installation.")
+        from Config import CreateConfigFromStdStream
         exceptions = []
         directory_name = name if name else "NWNTool"
 
@@ -431,9 +414,19 @@ class Install:
 
             if directory.is_dir():
                 logger.error("This directory should not exist yet...: {}".format(directory.is_dir()))
+                logger.info("To force installation in this path use 'install -force',"
+                            " this will erase directory and its content")
 
             logger.debug("Attempting to create a target directory...")
             pathlib.Path.mkdir(directory, parents=True)
+
+            os.chdir(directory)
+            from exceptions import CreateConfigFromStdStreamAbortedException
+            config = Config.config
+            try:
+                config = CreateConfigFromStdStream()
+            except CreateConfigFromStdStreamAbortedException:
+                logger.info("Falling to default settings...")
 
         except FileNotFoundError as excep:
             logger.error("FileNotFoundError. Probably you missing parent of target directory: {}".format(directory))
