@@ -43,36 +43,6 @@ class GlobalNameSpace:
             return ""
 
 
-class Pair:  # This class is redundant
-
-    def __init__(self, first=None, second=None):
-        self.first = first
-        self.second = second
-
-    def __setitem__(self, key, value):
-        if not isinstance(key, int):
-            raise TypeError
-        if key == 0:
-            self.first = value
-        elif key == 1:
-            self.second = value
-        else:
-            raise IndexError
-
-    def __getitem__(self, item):
-        if item == 0:
-            return self.first
-        elif item == 1:
-            return self.second
-        else:
-            raise IndexError
-
-    def not_none(self):
-        if self.first and self.second:
-            return True
-        return False
-
-
 class NWN:
     u"""Class recognizing type of the game."""
     _instances: List[Any] = []
