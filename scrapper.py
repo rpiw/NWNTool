@@ -21,6 +21,12 @@ class Website:
         return self.website
 
 
+website_root = Website("https://neverwintervault.org")
+website_2 = Website("https://neverwintervault.org/article/reference/campaigns-and-module-series-list-nwn1")
+website_with_module = Website("https://neverwintervault.org/project/nwn1/module/enigma-island-complete")
+website_with_patch = Website("https://neverwintervault.org/project/nwnee/other/patch/community-music-pack-fix-nwnee")
+
+
 class REPatterns:
     nwn1 = re.compile("nwn1/module")
     http = re.compile('^http://')
@@ -42,8 +48,9 @@ class REPatterns:
         }
 
 
-def request_http(website: Website):
-    response = requests.get(website.www())
+def request_http(website_str: str):
+    logger.debug("Attempting to send request to host: {}".format(website_str))
+    response = requests.get(website_str)
     soup = BeautifulSoup(response.text, "html.parser")
     for link in soup.find_all('a', attrs={'href': REPatterns.http}):
         yield link.get('href')
@@ -173,7 +180,4 @@ def download_module_from_website(www: str):
 
 
 if __name__ == '__main__':
-    website_root = Website("https://neverwintervault.org")
-    website_2 = Website("https://neverwintervault.org/article/reference/campaigns-and-module-series-list-nwn1")
-    website_with_module = Website("https://neverwintervault.org/project/nwn1/module/enigma-island-complete")
-    website_with_patch = Website("https://neverwintervault.org/project/nwnee/other/patch/community-music-pack-fix-nwnee")
+    pass

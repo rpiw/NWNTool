@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class Session(metaclass=singleton.Singleton):
     u"""Class representing running session. Should collect all info needed for interactive usage."""
     path = os.getcwd()
-    debug = False
+    debug = __debug__  # just for more convenience
 
     def __init__(self):
         self.tracked_directories = []

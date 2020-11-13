@@ -4,7 +4,7 @@ import logging
 import os
 import pathlib
 import platform
-
+import pickle
 logger = logging.getLogger(__name__)
 
 default_linux = (
@@ -21,6 +21,7 @@ default_windows = (r"GOG Games/NWN Diamond",
 home = pathlib.Path.home()
 _join = pathlib.Path.joinpath
 _DEFAULT_DATA_EMPTY = False
+_CONFIG_FILE_NAME = "config_pickle"
 
 if platform.system() == "Linux":
     default_directory = _join(home, pathlib.Path(r".local/share/NWNTool"))
@@ -175,3 +176,23 @@ class CreateConfigFromStdStream(AbstractConfigFactory):
 
 # Default:
 config = CurrentConfig()
+MODULES_FILE = "modules_in_vault_list.txt"
+
+
+def save():
+    logger.debug("Attempting to save config.")
+    with open(_CONFIG_FILE_NAME, "wb") as fi:
+        pickle.dump(config, fi)
+    logger.debug("Saved successfully.")
+
+
+def load():
+    r = None
+    logger.debug("Attempting to load config.")
+    with open(_CONFIG_FILE_NAME, "rb") as fi:
+        r = pickle.load(fi)
+    logger.debug("Loaded successfully.")
+    return r
+
+
+

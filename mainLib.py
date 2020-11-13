@@ -5,17 +5,18 @@ from enum import Enum, unique
 import pathlib
 import os
 from typing import List, Any
-
+import re
 from exceptions import UnknownVersionException
-from exceptions import DirectoryDoesNotExistsException
 import pickle
 import logging
 import scrapper
 import zipfile
 import cmd
-from session import Session
 
+from session import Session
 import Config
+
+
 logger = logging.getLogger(__name__)
 session = Session()
 
@@ -328,8 +329,13 @@ class Shell(cmd.Cmd):
 
     def do_config(self, *args, **kwargs):
         u"""Shows configuration, debug only."""
-        if session.debug:
-            print(Config.config.config)
+        for arg in args:
+            if arg == "save":
+                Config.save()
+            if arg == "load":
+                Config.config = Config.load()
+
+        print(Config.config.config)
 
     def do_install(self, *args, **kwargs):
         u"""Run installation."""
@@ -337,7 +343,6 @@ class Shell(cmd.Cmd):
         force = False
         path = "."
         name = None
-        import re
         try:
             for kwarg in args:
                 if kwarg == "-force":
@@ -348,8 +353,60 @@ class Shell(cmd.Cmd):
                     name = re.split("=", kwarg)[-1]
             Install.install(path=path, force=force, name=name)
         except InstallationAbortedException:
-            logger.debug("Installation has failed.")
+            logger.debug("Installation failed.")
 
+    def do_show_modules_list(self, *args, **kwargs):
+        u"""Show list of all modules found in neverwintervault.org.
+        :: www, bool - download links from vault,
+        :: file, bool  - if True try to read from file,
+        :: output, str - name of file to save, if empty string, stdout is used, optionally bool True may be given -
+            list is saved to file with default name."""
+        modules = []
+        www = True
+        file = False
+        output = ""
+
+        data = dict(args)
+        print(data)
+
+        if www:
+            modules = scrapper.create_list_of_links()
+        elif file:
+            try:
+                with open(file, "r", encoding="utf-8") as fi:
+                    modules = fi.read()
+            except FileNotFoundError:
+                logger.error("File not found. Given name: {}".format(file))
+        else:
+            logger.info("You did not specify a source of modules to list from.")
+            return
+
+        if output:
+            logger.debug("output name: {}".format(output))
+
+            if isinstance(output, str):
+                p = pathlib.Path(output)
+            elif isinstance(output, bool):
+                p = pathlib.Path(Config.MODULES_FILE)
+
+            try:
+                force = kwargs["force"]
+            except KeyError:
+                pass
+
+            if not force:
+                if p.exists():
+                    return
+            with open(p, "w") as fi:
+                fi.writelines(modules)
+
+        else:
+            if __debug__:
+                print("Found some names: {}".format(len(modules)))
+            else:
+                for m in modules:
+                    name = m.rsplit("/", 1)[-1]
+                    print(name)
 
 def main():
     nwn = NWN()
