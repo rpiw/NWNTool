@@ -26,56 +26,63 @@
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_2">
+       <item row="5" column="0">
+        <widget class="QLabel" name="label_4">
          <property name="text">
-          <string>Diamond Edition</string>
+          <string>EE local directory</string>
          </property>
          <property name="buddy">
-          <cstring>lineEdit</cstring>
+          <cstring>lineEdit_4</cstring>
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
+       <item row="6" column="2">
+        <widget class="QPushButton" name="pushButton_5">
+         <property name="text">
+          <string>Set directory</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="lineEdit_2"/>
+       </item>
+       <item row="4" column="2">
+        <widget class="QPushButton" name="pushButton_3">
+         <property name="text">
+          <string>Set directory</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="lineEdit_1"/>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="lineEdit_3"/>
+       </item>
+       <item row="5" column="2">
+        <widget class="QPushButton" name="pushButton_4">
+         <property name="text">
+          <string>Set directory</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
         <widget class="QLabel" name="label_5">
          <property name="text">
-          <string>EE local directory</string>
+          <string>NWNTool directory</string>
          </property>
          <property name="buddy">
           <cstring>lineEdit_5</cstring>
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
-        <widget class="QLineEdit" name="lineEdit_2"/>
-       </item>
-       <item row="4" column="2">
-        <widget class="QPushButton" name="pushButton_3">
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_1">
          <property name="text">
-          <string>Browse files</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>NWNTool directory</string>
+          <string>Diamond Edition</string>
          </property>
          <property name="buddy">
-          <cstring>lineEdit_3</cstring>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLineEdit" name="lineEdit"/>
-       </item>
-       <item row="6" column="1">
-        <widget class="QLineEdit" name="lineEdit_3"/>
-       </item>
-       <item row="6" column="2">
-        <widget class="QPushButton" name="pushButton_4">
-         <property name="text">
-          <string>Browse folders</string>
+          <cstring>lineEdit_1</cstring>
          </property>
         </widget>
        </item>
@@ -85,46 +92,39 @@
           <string>Enhanced Edition</string>
          </property>
          <property name="buddy">
-          <cstring>lineEdit_2</cstring>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="2">
-        <widget class="QPushButton" name="pushButton_2">
-         <property name="text">
-          <string>Browse files</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>DE local directory</string>
-         </property>
-         <property name="buddy">
-          <cstring>lineEdit_4</cstring>
+          <cstring>lineEdit_3</cstring>
          </property>
         </widget>
        </item>
        <item row="3" column="2">
-        <widget class="QPushButton" name="pushButton_5">
+        <widget class="QPushButton" name="pushButton_2">
          <property name="text">
-          <string>Browse folders</string>
+          <string>Set directory</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="2">
-        <widget class="QPushButton" name="pushButton_6">
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="lineEdit_5"/>
+       </item>
+       <item row="2" column="2">
+        <widget class="QPushButton" name="pushButton_1">
          <property name="text">
-          <string>Browse folders</string>
+          <string>Set directory</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="QLineEdit" name="lineEdit_4"/>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>DE local directory</string>
+         </property>
+         <property name="buddy">
+          <cstring>lineEdit_2</cstring>
+         </property>
+        </widget>
        </item>
        <item row="5" column="1">
-        <widget class="QLineEdit" name="lineEdit_5"/>
+        <widget class="QLineEdit" name="lineEdit_4"/>
        </item>
       </layout>
      </item>
@@ -221,16 +221,16 @@
   </action>
  </widget>
  <tabstops>
-  <tabstop>lineEdit</tabstop>
-  <tabstop>pushButton_2</tabstop>
-  <tabstop>lineEdit_4</tabstop>
-  <tabstop>pushButton_5</tabstop>
+  <tabstop>lineEdit_1</tabstop>
+  <tabstop>pushButton_1</tabstop>
   <tabstop>lineEdit_2</tabstop>
-  <tabstop>pushButton_3</tabstop>
-  <tabstop>lineEdit_5</tabstop>
-  <tabstop>pushButton_6</tabstop>
+  <tabstop>pushButton_2</tabstop>
   <tabstop>lineEdit_3</tabstop>
+  <tabstop>pushButton_3</tabstop>
+  <tabstop>lineEdit_4</tabstop>
   <tabstop>pushButton_4</tabstop>
+  <tabstop>lineEdit_5</tabstop>
+  <tabstop>pushButton_5</tabstop>
   <tabstop>tableView</tabstop>
  </tabstops>
  <resources/>
